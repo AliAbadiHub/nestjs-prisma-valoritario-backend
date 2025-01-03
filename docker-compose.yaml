@@ -6,3 +6,10 @@ services:
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: nestjs-prisma-valoritario
+
+  redis:
+    image: redis:alpine
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
