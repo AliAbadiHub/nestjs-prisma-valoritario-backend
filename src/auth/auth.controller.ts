@@ -10,12 +10,18 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @Post('login')
   async login(@Request() req) {
-    return this.authService.login(req.user);
+    console.log('Login attempt for user:', req.user);
+    const result = await this.authService.login(req.user);
+    console.log('Login result:', result);
+    return result;
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   async logout(@Request() req) {
-    return this.authService.logout(req.user.id);
+    console.log('Logout attempt for user:', req.user);
+    const result = await this.authService.logout(req.user.id);
+    console.log('Logout result:', result);
+    return result;
   }
 }

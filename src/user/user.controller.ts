@@ -54,7 +54,7 @@ export class UserController {
   }
 
   @Get()
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.BASIC, Role.MERCHANT, Role.VERIFIED)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Get a user by email' })
   @ApiQuery({
@@ -68,8 +68,27 @@ export class UserController {
     return this.userService.getUsers(page, limit);
   }
 
+  @Get('search')
+  @Roles(Role.BASIC, Role.MERCHANT, Role.VERIFIED, Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async getUserByEmail(@Query('email') email: string) {
+    console.log('Controller: Received request for email:', email);
+    try {
+      const user = await this.userService.getUserByEmail(email);
+      console.log('Controller: User service returned:', user);
+      if (!user) {
+        console.log('Controller: User not found, throwing NotFoundException');
+        throw new NotFoundException('User not found');
+      }
+      return user;
+    } catch (error) {
+      console.error('Controller: Error in getUserByEmail:', error);
+      throw error;
+    }
+  }
+
   @Get(':id')
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.BASIC, Role.MERCHANT, Role.VERIFIED)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Get a user by id' })
   @ApiParam({
@@ -81,16 +100,6 @@ export class UserController {
   @ApiResponse({ status: 404, description: 'User not found.' })
   async getUserById(@Param('id') id: string) {
     return this.userService.getUserById(id);
-  }
-  @Get('search')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.BASIC, Role.MERCHANT, Role.VERIFIED, Role.ADMIN)
-  async getUserByEmail(@Query('email') email: string) {
-    const user = await this.userService.getUserByEmail(email);
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    return user;
   }
   @Patch(':id')
   @UseGuards(JwtAuthGuard, UserOwnershipGuard)

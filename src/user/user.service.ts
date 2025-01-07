@@ -63,6 +63,7 @@ export class UserService {
   }
 
   async getUserByEmail(email: string) {
+    console.log('Service: Searching for user with email:', email);
     const user = await this.prisma.user.findUnique({
       where: { email },
       select: {
@@ -75,11 +76,19 @@ export class UserService {
       },
     });
 
+    console.log('Service: Found user:', user);
+
     if (!user) {
+      console.log('Service: User not found');
       return null; // Let the controller handle the not found case
     }
 
+    console.log('Service: User found:', user);
     return user;
+  }
+  catch(error) {
+    console.error('Service: Error in getUserByEmail:', error);
+    throw error;
   }
 
   async updateUserPassword(id: string, newPassword: string) {
