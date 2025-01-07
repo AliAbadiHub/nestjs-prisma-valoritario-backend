@@ -8,6 +8,7 @@ import { LocalStrategy } from './local.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from '../prisma/prisma.module';
 import { UserModule } from 'src/user/user.module';
+import { RolesGuard } from './guards/role.guard';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { UserModule } from 'src/user/user.module';
     }),
     ConfigModule,
   ],
-  providers: [AuthService, JwtStrategy, LocalStrategy],
+  providers: [AuthService, JwtStrategy, LocalStrategy, RolesGuard],
   controllers: [AuthController],
   exports: [AuthService],
 })

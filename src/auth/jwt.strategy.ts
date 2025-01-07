@@ -10,12 +10,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   constructor(private configService: ConfigService) {
     const secret = configService.get<string>('JWT_SECRET');
-    console.log('JWT_SECRET:', secret); // Log the secret
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET'),
+      secretOrKey: secret,
     });
 
     this.redisClient = Redis.createClient({
@@ -25,7 +24,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
+    console.log('Payload:', payload);
     const token = await this.redisClient.get(`token:${payload.sub}`);
+    console.log('Token from Redis:', token);
     if (!token) {
       throw new UnauthorizedException();
     }

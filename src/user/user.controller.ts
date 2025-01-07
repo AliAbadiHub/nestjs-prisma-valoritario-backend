@@ -10,13 +10,26 @@ import {
   UsePipes,
   Query,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { RolesGuard } from 'src/auth/guards/role.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { Role } from '@prisma/client';
+import { Roles } from 'src/auth/roles.decorators';
+import { UserOwnershipGuard } from 'src/auth/guards/user-ownership.guard';
 
 @Controller('user')
+@ApiTags('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -41,6 +54,8 @@ export class UserController {
   }
 
   @Get()
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Get a user by email' })
   @ApiQuery({
     name: 'email',
@@ -54,6 +69,8 @@ export class UserController {
   }
 
   @Get(':id')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Get a user by id' })
   @ApiParam({
     name: 'id',
@@ -66,6 +83,8 @@ export class UserController {
     return this.userService.getUserById(id);
   }
   @Get('search')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.BASIC, Role.MERCHANT, Role.VERIFIED, Role.ADMIN)
   async getUserByEmail(@Query('email') email: string) {
     const user = await this.userService.getUserByEmail(email);
     if (!user) {
@@ -74,6 +93,7 @@ export class UserController {
     return user;
   }
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, UserOwnershipGuard)
   @ApiOperation({ summary: "Update a user's password" })
   @ApiParam({
     name: 'id',
@@ -93,6 +113,7 @@ export class UserController {
     return { message: 'Password updated successfully' };
   }
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, UserOwnershipGuard)
   @ApiOperation({ summary: 'Delete a user' })
   @ApiParam({
     name: 'id',
