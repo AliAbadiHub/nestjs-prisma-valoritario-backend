@@ -24,9 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    console.log('Validating JWT payload:', payload);
     const token = await this.redisClient.get(`token:${payload.sub}`);
-    console.log('Token from Redis:', token ? 'Found' : 'Not found');
     if (!token) {
       throw new UnauthorizedException();
     }

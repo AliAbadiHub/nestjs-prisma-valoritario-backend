@@ -54,9 +54,15 @@ export class UserController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.BASIC, Role.MERCHANT, Role.VERIFIED)
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiOperation({ summary: 'Get a user by email' })
+  @ApiOperation({ summary: 'Get all users' })
+  async findAll(@Query('page') page = 1, @Query('limit') limit = 10) {
+    return this.userService.getUsers(page, limit);
+  }
+
+  @Get('search')
+  @ApiOperation({ summary: 'Search for a user by email' })
   @ApiQuery({
     name: 'email',
     required: true,
@@ -64,20 +70,12 @@ export class UserController {
   })
   @ApiResponse({ status: 200, description: 'Return the user.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
-  async findAll(@Query('page') page = 1, @Query('limit') limit = 10) {
-    return this.userService.getUsers(page, limit);
-  }
-
-  @Get('search')
   @Roles(Role.BASIC, Role.MERCHANT, Role.VERIFIED, Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
   async getUserByEmail(@Query('email') email: string) {
-    console.log('Controller: Received request for email:', email);
     try {
       const user = await this.userService.getUserByEmail(email);
-      console.log('Controller: User service returned:', user);
       if (!user) {
-        console.log('Controller: User not found, throwing NotFoundException');
         throw new NotFoundException('User not found');
       }
       return user;
@@ -88,7 +86,7 @@ export class UserController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.BASIC, Role.MERCHANT, Role.VERIFIED)
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Get a user by id' })
   @ApiParam({
@@ -101,6 +99,7 @@ export class UserController {
   async getUserById(@Param('id') id: string) {
     return this.userService.getUserById(id);
   }
+
   @Patch(':id')
   @UseGuards(JwtAuthGuard, UserOwnershipGuard)
   @ApiOperation({ summary: "Update a user's password" })
@@ -121,6 +120,7 @@ export class UserController {
     await this.userService.updateUserPassword(id, updateUserDto.password);
     return { message: 'Password updated successfully' };
   }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard, UserOwnershipGuard)
   @ApiOperation({ summary: 'Delete a user' })
