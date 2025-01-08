@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, ProductCategory } from '@prisma/client';
 
 @Injectable()
 export class ProductService {
@@ -10,9 +10,40 @@ export class ProductService {
     return this.prisma.product.create({ data });
   }
 
-  async getProducts(page: number, limit: number) {
+  async getProducts(
+    page: number,
+    limit: number,
+    filters: {
+      name?: string;
+      category?: ProductCategory;
+      isTypicallyBranded?: boolean;
+      brandName?: string;
+      unit?: string;
+    },
+  ) {
+    const { name, category, isTypicallyBranded, brandName, unit } = filters;
     const skip = (page - 1) * limit;
+
+    const whereClause: any = {};
+
+    if (name) whereClause.name = { contains: name, mode: 'insensitive' };
+    if (category) whereClause.category = category;
+    if (isTypicallyBranded !== undefined)
+      whereClause.isTypicallyBranded = isTypicallyBranded;
+    if (unit) whereClause.units = { has: unit };
+
+    if (brandName) {
+      whereClause.brandProducts = {
+        some: {
+          brand: {
+            name: { contains: brandName, mode: 'insensitive' },
+          },
+        },
+      };
+    }
+
     const products = await this.prisma.product.findMany({
+      where: whereClause,
       skip,
       take: limit,
       select: {
@@ -22,15 +53,38 @@ export class ProductService {
         category: true,
         units: true,
         isTypicallyBranded: true,
+        brandProducts: {
+          select: {
+            id: true,
+            name: true,
+            brand: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
-    const total = await this.prisma.product.count();
+
+    const total = await this.prisma.product.count({ where: whereClause });
+
     return { products, total, page, limit };
   }
 
-  // getProductById(id: number) {
-  //   return `This action returns a #${id} product`;
-  // }
+  async getProductById(id: string) {
+    return this.prisma.product.findUnique({
+      where: { id },
+      include: {
+        brandProducts: {
+          include: {
+            brand: true,
+          },
+        },
+      },
+    });
+  }
 
   // getProductByName(id: number) {
   //   return `This action returns a #${id} product`;

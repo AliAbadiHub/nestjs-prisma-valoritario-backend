@@ -13,6 +13,16 @@ services:
       - 6379:6379
     volumes:
       - redis_data:/data
+  # backend:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - '3000:3000'
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #   command: yarn start:prod
 
 volumes:
   redis_data:
