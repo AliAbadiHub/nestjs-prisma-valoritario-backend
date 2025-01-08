@@ -1,5 +1,12 @@
 // create-product.dto.ts
-import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { ProductCategory } from '@prisma/client';
 
 export class CreateProductDto {
@@ -7,11 +14,18 @@ export class CreateProductDto {
   @IsString()
   name: string;
 
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsBoolean()
+  isTypicallyBranded: boolean;
+
   @IsNotEmpty()
   @IsEnum(ProductCategory)
   category: ProductCategory;
 
-  @IsNotEmpty()
-  @IsString()
-  defaultUnit: string;
+  @IsArray()
+  @IsString({ each: true })
+  units: string[];
 }
