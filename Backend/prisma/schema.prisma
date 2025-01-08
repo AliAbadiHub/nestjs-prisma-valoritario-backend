@@ -39,23 +39,25 @@ model User {
 }
 
 model Profile {
-  id          String   @id @default(uuid())
-  user        User     @relation(fields: [userId], references: [id])
-  userId      String   @unique
-  points      Int      @default(0)
+  id          String    @id @default(uuid())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String    @unique
+  points      Int       @default(0)
   firstName   String?
   lastName    String?
-  dateOfBirth DateTime
+  dateOfBirth DateTime?
   city        String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Product {
   id                  String               @id @default(uuid())
   name                String               @unique
+  description         String?
   category            ProductCategory
-  defaultUnit         String
+  units               String[]
+  isTypicallyBranded  Boolean              @default(false)
   brandProducts       BrandProduct[]
   supermarketProducts SupermarketProduct[]
   shoppingListItems   ShoppingListItem[]
@@ -66,6 +68,7 @@ model Product {
 model Brand {
   id            String         @id @default(uuid())
   name          String         @unique
+  logo          String?
   brandProducts BrandProduct[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -91,6 +94,8 @@ model Supermarket {
   name                String
   franchise           Franchise            @relation(fields: [franchiseId], references: [id])
   franchiseId         String
+  openingHours        String // or JSON
+  phoneNumber         String
   address             String
   city                String
   supermarketProducts SupermarketProduct[]
@@ -108,6 +113,7 @@ model SupermarketProduct {
   productId      String
   brandProduct   BrandProduct? @relation(fields: [brandProductId], references: [id])
   brandProductId String?
+  unit           String
   price          Float
   inStock        Boolean       @default(true)
   createdAt      DateTime      @default(now())
@@ -119,6 +125,7 @@ model SupermarketProduct {
 model Franchise {
   id          String        @id @default(uuid())
   name        String        @unique
+  logo        String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt()
   Supermarket Supermarket[]
@@ -128,6 +135,7 @@ model ShoppingList {
   id        String             @id @default(uuid())
   user      User               @relation(fields: [userId], references: [id])
   userId    String
+  isActive  Boolean            @default(true)
   items     ShoppingListItem[]
   totalCost Float?
   createdAt DateTime           @default(now())
@@ -144,8 +152,7 @@ model ShoppingListItem {
   brandProductId String?
   quantity       Float
   unit           String
-  unitPrice      Float?
-  subtotal       Float?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

@@ -23,7 +23,7 @@ CREATE TABLE "Profile" (
     "points" INTEGER NOT NULL DEFAULT 0,
     "firstName" TEXT,
     "lastName" TEXT,
-    "dateOfBirth" TIMESTAMP(3) NOT NULL,
+    "dateOfBirth" TIMESTAMP(3),
     "city" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -35,8 +35,10 @@ CREATE TABLE "Profile" (
 CREATE TABLE "Product" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "description" TEXT,
     "category" "ProductCategory" NOT NULL,
-    "defaultUnit" TEXT NOT NULL,
+    "units" TEXT[],
+    "isTypicallyBranded" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -47,6 +49,7 @@ CREATE TABLE "Product" (
 CREATE TABLE "Brand" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "logo" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -70,6 +73,8 @@ CREATE TABLE "Supermarket" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "franchiseId" TEXT NOT NULL,
+    "openingHours" TEXT NOT NULL,
+    "phoneNumber" TEXT NOT NULL,
     "address" TEXT NOT NULL,
     "city" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -84,6 +89,7 @@ CREATE TABLE "SupermarketProduct" (
     "supermarketId" TEXT NOT NULL,
     "productId" TEXT NOT NULL,
     "brandProductId" TEXT,
+    "unit" TEXT NOT NULL,
     "price" DOUBLE PRECISION NOT NULL,
     "inStock" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -96,6 +102,7 @@ CREATE TABLE "SupermarketProduct" (
 CREATE TABLE "Franchise" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "logo" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -106,6 +113,7 @@ CREATE TABLE "Franchise" (
 CREATE TABLE "ShoppingList" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
     "totalCost" DOUBLE PRECISION,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -121,8 +129,6 @@ CREATE TABLE "ShoppingListItem" (
     "brandProductId" TEXT,
     "quantity" DOUBLE PRECISION NOT NULL,
     "unit" TEXT NOT NULL,
-    "unitPrice" DOUBLE PRECISION,
-    "subtotal" DOUBLE PRECISION,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
