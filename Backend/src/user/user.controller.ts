@@ -61,30 +61,6 @@ export class UserController {
     return this.userService.getUsers(page, limit);
   }
 
-  @Get('search')
-  @ApiOperation({ summary: 'Search for a user by email' })
-  @ApiQuery({
-    name: 'email',
-    required: true,
-    description: 'Email of the user to search for',
-  })
-  @ApiResponse({ status: 200, description: 'Return the user.' })
-  @ApiResponse({ status: 404, description: 'User not found.' })
-  @Roles(Role.BASIC, Role.MERCHANT, Role.VERIFIED, Role.ADMIN)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  async getUserByEmail(@Query('email') email: string) {
-    try {
-      const user = await this.userService.getUserByEmail(email);
-      if (!user) {
-        throw new NotFoundException('User not found');
-      }
-      return user;
-    } catch (error) {
-      console.error('Controller: Error in getUserByEmail:', error);
-      throw error;
-    }
-  }
-
   @Get(':id')
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -98,6 +74,30 @@ export class UserController {
   @ApiResponse({ status: 404, description: 'User not found.' })
   async getUserById(@Param('id') id: string) {
     return this.userService.getUserById(id);
+  }
+
+  @Get('email/search')
+  @ApiOperation({ summary: 'Search for a user by email' })
+  @ApiQuery({
+    name: 'email',
+    required: true,
+    description: 'Email of the user to search for',
+  })
+  @ApiResponse({ status: 200, description: 'Return the user.' })
+  @ApiResponse({ status: 404, description: 'User not found.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  @UseGuards(JwtAuthGuard, UserOwnershipGuard)
+  async getUserByEmail(@Query('email') email: string) {
+    try {
+      const user = await this.userService.getUserByEmail(email);
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+      return user;
+    } catch (error) {
+      console.error('Controller: Error in getUserByEmail:', error);
+      throw error;
+    }
   }
 
   @Patch(':id')

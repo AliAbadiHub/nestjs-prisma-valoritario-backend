@@ -10,14 +10,14 @@ export class UserOwnershipGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
-    const userId = request.params.id;
+    const emailToSearch = request.query.email;
 
     // Allow if user is admin
     if (user.role === Role.ADMIN) {
       return true;
     }
 
-    // Allow if user is modifying their own account
-    return user.id === userId;
+    // Allow if user is searching their own email
+    return user.email === emailToSearch;
   }
 }
