@@ -22,6 +22,7 @@ import {
   ApiResponse,
   ApiTags,
   ApiBody,
+  ApiSecurity,
 } from '@nestjs/swagger';
 import { Roles } from 'src/auth/roles.decorators';
 import { ProductCategory, Role } from '@prisma/client';
@@ -34,6 +35,11 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post()
+  @Roles(Role.ADMIN, Role.MERCHANT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiSecurity('admin')
+  @ApiSecurity('merchant')
+  @ApiSecurity('verified')
   @ApiTags('Products')
   @ApiOperation({ summary: 'Create a new product' })
   @ApiBody({
@@ -173,8 +179,11 @@ export class ProductController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MERCHANT)
+  @Roles(Role.ADMIN, Role.MERCHANT, Role.VERIFIED)
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiSecurity('admin')
+  @ApiSecurity('merchant')
+  @ApiSecurity('verified')
   @ApiOperation({ summary: 'Get a specific product by ID' })
   @ApiParam({ name: 'id', required: true, description: 'UUID of the product' })
   @ApiResponse({

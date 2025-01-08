@@ -19,6 +19,8 @@ async function bootstrap() {
     .setTitle('VALORITARIO')
     .setDescription('The Shopping Companion API')
     .setVersion('1.0')
+    .addTag('Authentication')
+    .addBearerAuth()
     .addTag('users')
     .build();
   const document = SwaggerModule.createDocument(app, config);

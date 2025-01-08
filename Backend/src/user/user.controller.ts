@@ -18,6 +18,8 @@ import {
   ApiParam,
   ApiQuery,
   ApiTags,
+  ApiBearerAuth,
+  ApiSecurity,
 } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -30,6 +32,7 @@ import { UserOwnershipGuard } from 'src/auth/guards/user-ownership.guard';
 
 @Controller('user')
 @ApiTags('users')
+@ApiBearerAuth()
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -57,6 +60,8 @@ export class UserController {
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Get all users' })
+  @ApiBearerAuth()
+  @ApiSecurity('admin')
   async findAll(@Query('page') page = 1, @Query('limit') limit = 10) {
     return this.userService.getUsers(page, limit);
   }
@@ -64,6 +69,8 @@ export class UserController {
   @Get(':id')
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiSecurity('admin')
   @ApiOperation({ summary: 'Get a user by id' })
   @ApiParam({
     name: 'id',
@@ -77,6 +84,7 @@ export class UserController {
   }
 
   @Get('email/search')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Search for a user by email' })
   @ApiQuery({
     name: 'email',
@@ -101,6 +109,7 @@ export class UserController {
   }
 
   @Patch(':id')
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, UserOwnershipGuard)
   @ApiOperation({ summary: "Update a user's password" })
   @ApiParam({
@@ -122,6 +131,7 @@ export class UserController {
   }
 
   @Delete(':id')
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, UserOwnershipGuard)
   @ApiOperation({ summary: 'Delete a user' })
   @ApiParam({
