@@ -86,13 +86,19 @@ export class ProductService {
     });
   }
 
-  // getProductByName(id: number) {
-  //   return `This action returns a #${id} product`;
-  // }
-
-  // updateProduct(id: number, updateProductDto: UpdateProductDto) {
-  //   return `This action updates a #${id} product`;
-  // }
+  async updateProduct(id: string, updateProductDto: Prisma.ProductUpdateInput) {
+    return this.prisma.product.update({
+      where: { id },
+      data: updateProductDto,
+      include: {
+        brandProducts: {
+          include: {
+            brand: true,
+          },
+        },
+      },
+    });
+  }
 
   // deleteProduct(id: number) {
   //   return `This action removes a #${id} product`;

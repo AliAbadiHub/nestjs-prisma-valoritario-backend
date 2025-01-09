@@ -3,8 +3,7 @@ import {
   Get,
   Post,
   Body,
-  // Patch,
-  // Param,
+  Patch,
   // Delete,
   UsePipes,
   ValidationPipe,
@@ -28,7 +27,7 @@ import { Roles } from 'src/auth/roles.decorators';
 import { ProductCategory, Role } from '@prisma/client';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/role.guard';
-// import { UpdateProductDto } from './dto/update-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 
 @Controller('product')
 export class ProductController {
@@ -185,7 +184,12 @@ export class ProductController {
   @ApiSecurity('merchant')
   @ApiSecurity('verified')
   @ApiOperation({ summary: 'Get a specific product by ID' })
-  @ApiParam({ name: 'id', required: true, description: 'UUID of the product' })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: 'UUID of the product',
+    example: '9d4cc102-7bc8-4d60-a539-0dc98ca9323b',
+  })
   @ApiResponse({
     status: 200,
     description: 'Successfully retrieved the product',
@@ -201,10 +205,39 @@ export class ProductController {
     return product;
   }
 
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-  //   return this.productService.update(+id, updateProductDto);
-  // }
+  @Patch(':id')
+  @Roles(Role.ADMIN, Role.MERCHANT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiSecurity('admin')
+  @ApiSecurity('merchant')
+  @ApiOperation({ summary: 'Update a specific product by ID' })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: 'UUID of the product',
+    example: '9d4cc102-7bc8-4d60-a539-0dc98ca9323b',
+  })
+  @ApiBody({ type: UpdateProductDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully updated the product',
+  })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient role' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateProductDto: UpdateProductDto,
+  ) {
+    const updatedProduct = await this.productService.updateProduct(
+      id,
+      updateProductDto,
+    );
+    if (!updatedProduct) {
+      throw new NotFoundException('Product not found');
+    }
+    return updatedProduct;
+  }
 
   // @Delete(':id')
   // remove(@Param('id') id: string) {
