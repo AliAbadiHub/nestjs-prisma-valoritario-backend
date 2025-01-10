@@ -129,7 +129,6 @@ export class ProductController {
     required: false,
     type: String,
     description: 'Filter products by name (case-insensitive, partial match)',
-    example: 'milk',
   })
   @ApiQuery({
     name: 'category',
@@ -149,14 +148,12 @@ export class ProductController {
     type: String,
     description:
       'Filter products by brand name (case-insensitive, partial match)',
-    example: 'nestle',
   })
   @ApiQuery({
     name: 'unit',
     required: false,
     type: String,
     description: 'Filter products by unit of measurement',
-    example: 'liter',
   })
   @ApiResponse({ status: 200, description: 'Successfully retrieved products' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
