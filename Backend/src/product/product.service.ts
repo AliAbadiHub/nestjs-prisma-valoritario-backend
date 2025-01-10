@@ -6,7 +6,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Prisma, ProductCategory } from '@prisma/client';
+import { Prisma, Product, ProductCategory } from '@prisma/client';
+import { isUUID } from 'class-validator';
 
 @Injectable()
 export class ProductService {
@@ -202,7 +203,44 @@ export class ProductService {
     }
   }
 
-  // deleteProduct(id: number) {
-  //   return `This action removes a #${id} product`;
-  // }
+  async deleteProduct(id: string): Promise<Product> {
+    try {
+      // Validate UUID format
+      if (!isUUID(id)) {
+        throw new BadRequestException('Invalid product ID format');
+      }
+
+      const deletedProduct = await this.prisma.product.delete({
+        where: { id },
+        include: {
+          brandProducts: {
+            include: {
+              brand: true,
+            },
+          },
+        },
+      });
+
+      return deletedProduct;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException(`Product with ID ${id} not found`);
+        }
+        if (error.code === 'P2003') {
+          throw new ConflictException(
+            'Cannot delete product due to existing references',
+          );
+        }
+      }
+      // Log the error for debugging
+      console.error('Unexpected error in deleteProduct service method:', error);
+      throw new InternalServerErrorException(
+        'An unexpected error occurred while deleting the product',
+      );
+    }
+  }
 }

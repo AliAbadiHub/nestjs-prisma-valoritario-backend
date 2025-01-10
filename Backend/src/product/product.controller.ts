@@ -4,13 +4,15 @@ import {
   Post,
   Body,
   Patch,
-  // Delete,
   UsePipes,
   ValidationPipe,
   UseGuards,
   Query,
   NotFoundException,
   Param,
+  BadRequestException,
+  Delete,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -22,6 +24,7 @@ import {
   ApiTags,
   ApiBody,
   ApiSecurity,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Roles } from 'src/auth/roles.decorators';
 import { ProductCategory, Role } from '@prisma/client';
@@ -30,6 +33,8 @@ import { RolesGuard } from 'src/auth/guards/role.guard';
 import { UpdateProductDto } from './dto/update-product.dto';
 
 @Controller('product')
+@ApiTags('products')
+@ApiBearerAuth()
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
@@ -38,8 +43,6 @@ export class ProductController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiSecurity('admin')
   @ApiSecurity('merchant')
-  @ApiSecurity('verified')
-  @ApiTags('Products')
   @ApiOperation({ summary: 'Create a new product' })
   @ApiBody({
     type: CreateProductDto,
@@ -106,7 +109,6 @@ export class ProductController {
   @Get()
   @Roles(Role.ADMIN, Role.MERCHANT)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiTags('Products')
   @ApiOperation({ summary: 'Get all products with filtering options' })
   @ApiQuery({
     name: 'page',
@@ -160,18 +162,24 @@ export class ProductController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient role' })
   async findAll(
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
     @Query('name') name?: string,
     @Query('category') category?: ProductCategory,
-    @Query('isTypicallyBranded') isTypicallyBranded?: boolean,
+    @Query('isTypicallyBranded') isTypicallyBranded?: string,
     @Query('brandName') brandName?: string,
     @Query('unit') unit?: string,
   ) {
-    return this.productService.getProducts(page, limit, {
+    const parsedPage = page ? parseInt(page, 10) : 1;
+    const parsedLimit = limit ? parseInt(limit, 10) : 10;
+    const parsedIsTypicallyBranded = isTypicallyBranded
+      ? isTypicallyBranded.toLowerCase() === 'true'
+      : undefined;
+
+    return this.productService.getProducts(parsedPage, parsedLimit, {
       name,
       category,
-      isTypicallyBranded,
+      isTypicallyBranded: parsedIsTypicallyBranded,
       brandName,
       unit,
     });
@@ -239,8 +247,60 @@ export class ProductController {
     return updatedProduct;
   }
 
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.productService.remove(+id);
-  // }
+  @Delete(':id')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiSecurity('admin')
+  @ApiOperation({ summary: 'Delete a specific product by ID' })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: 'UUID of the product to delete',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Product successfully deleted',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+        deletedProduct: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+            // Add other relevant product properties here
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request - Invalid ID format' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient role' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async deleteProduct(
+    @Param('id') id: string,
+  ): Promise<{ message: string; deletedProduct: any }> {
+    try {
+      const deletedProduct = await this.productService.deleteProduct(id);
+      return {
+        message: 'Product successfully deleted',
+        deletedProduct,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      // Log the error for debugging
+      console.error('Unexpected error in deleteProduct:', error);
+      throw new InternalServerErrorException(
+        'An unexpected error occurred while deleting the product',
+      );
+    }
+  }
 }
