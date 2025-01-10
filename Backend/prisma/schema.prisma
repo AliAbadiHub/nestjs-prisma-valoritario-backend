@@ -92,12 +92,15 @@ model BrandProduct {
 model Supermarket {
   id                  String               @id @default(uuid())
   name                String
-  franchise           Franchise            @relation(fields: [franchiseId], references: [id])
-  franchiseId         String
-  openingHours        String // or JSON
-  phoneNumber         String
+  franchise           Franchise?           @relation(fields: [franchiseId], references: [id])
+  franchiseId         String?
+  openingHours        Json
+  phoneNumber         String?
   address             String
   city                String
+  website             String?
+  latitude            Float?
+  longitude           Float?
   supermarketProducts SupermarketProduct[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt

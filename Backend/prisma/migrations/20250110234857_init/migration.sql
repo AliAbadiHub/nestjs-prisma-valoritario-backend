@@ -72,11 +72,14 @@ CREATE TABLE "BrandProduct" (
 CREATE TABLE "Supermarket" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "franchiseId" TEXT NOT NULL,
-    "openingHours" TEXT NOT NULL,
-    "phoneNumber" TEXT NOT NULL,
+    "franchiseId" TEXT,
+    "openingHours" JSONB NOT NULL,
+    "phoneNumber" TEXT,
     "address" TEXT NOT NULL,
     "city" TEXT NOT NULL,
+    "website" TEXT,
+    "latitude" DOUBLE PRECISION,
+    "longitude" DOUBLE PRECISION,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -172,7 +175,7 @@ ALTER TABLE "BrandProduct" ADD CONSTRAINT "BrandProduct_brandId_fkey" FOREIGN KE
 ALTER TABLE "BrandProduct" ADD CONSTRAINT "BrandProduct_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Supermarket" ADD CONSTRAINT "Supermarket_franchiseId_fkey" FOREIGN KEY ("franchiseId") REFERENCES "Franchise"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Supermarket" ADD CONSTRAINT "Supermarket_franchiseId_fkey" FOREIGN KEY ("franchiseId") REFERENCES "Franchise"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "SupermarketProduct" ADD CONSTRAINT "SupermarketProduct_supermarketId_fkey" FOREIGN KEY ("supermarketId") REFERENCES "Supermarket"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
