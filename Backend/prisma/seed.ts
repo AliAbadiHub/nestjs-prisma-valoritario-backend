@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient, ProductCategory, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -35,6 +35,57 @@ async function main() {
         password: hashedPassword,
         role: user.role,
       },
+    });
+  }
+
+  const products = [
+    {
+      name: 'Tomatoes',
+      description: 'Fresh tomatoes',
+      category: ProductCategory.PRODUCE,
+      units: ['kg'],
+      isTypicallyBranded: false,
+    },
+    {
+      name: 'Chicken Breasts',
+      description: 'Boneless chicken breasts',
+      category: ProductCategory.BUTCHER,
+      units: ['kg'],
+      isTypicallyBranded: false,
+    },
+    {
+      name: 'Beef Tenderloin',
+      description: 'Premium beef tenderloin',
+      category: ProductCategory.BUTCHER,
+      units: ['kg'],
+      isTypicallyBranded: false,
+    },
+    {
+      name: 'Flour',
+      description: 'All-purpose flour',
+      category: ProductCategory.GROCERY,
+      units: ['kg'],
+      isTypicallyBranded: true,
+    },
+    {
+      name: 'White Granulated Sugar',
+      description: 'Fine white sugar',
+      category: ProductCategory.GROCERY,
+      units: ['kg'],
+      isTypicallyBranded: true,
+    },
+    {
+      name: 'Corn Oil',
+      description: 'Refined corn oil',
+      category: ProductCategory.GROCERY,
+      units: ['liter'],
+      isTypicallyBranded: true,
+    },
+  ];
+
+  for (const product of products) {
+    await prisma.product.create({
+      data: product,
     });
   }
 
