@@ -85,7 +85,7 @@ export class UserController {
   })
   @ApiResponse({ status: 200, description: 'Return the user.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
-  async getUserById(@Param('id') id: string) {
+  async getUserById(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.userService.getUserById(id);
   }
 
@@ -129,7 +129,7 @@ export class UserController {
   })
   @ApiResponse({ status: 404, description: 'User not found.' })
   async updateUser(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateUserDto: UpdateUserDto,
   ) {
     await this.userService.updateUserPassword(id, updateUserDto.password);

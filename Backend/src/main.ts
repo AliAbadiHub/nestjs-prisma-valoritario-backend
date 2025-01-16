@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { VersioningType, ValidationPipe, ParseUUIDPipe } from '@nestjs/common';
+import { VersioningType } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,12 +16,6 @@ async function bootstrap() {
 
   // Set global prefix
   app.setGlobalPrefix('api/v1');
-
-  // Global pipes
-  app.useGlobalPipes(
-    new ValidationPipe(),
-    new ParseUUIDPipe({ version: '4', errorHttpStatusCode: 400 }),
-  );
 
   // Swagger setup
   const config = new DocumentBuilder()

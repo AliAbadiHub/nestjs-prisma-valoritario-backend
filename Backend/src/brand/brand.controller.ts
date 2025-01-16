@@ -13,6 +13,7 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { BrandService } from './brand.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
@@ -188,7 +189,7 @@ export class BrandController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient role' })
   @ApiResponse({ status: 404, description: 'Brand not found' })
-  async getBrandProducts(@Param('id') id: string) {
+  async getBrandProducts(@Param('id', new ParseUUIDPipe()) id: string) {
     const products = await this.brandService.getBrandProducts(id);
     if (!products.length) {
       throw new NotFoundException(`No products found for brand with id ${id}`);
@@ -238,7 +239,7 @@ export class BrandController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient role' })
   @ApiResponse({ status: 404, description: 'Brand not found' })
-  async getBrandById(@Param('id') id: string) {
+  async getBrandById(@Param('id', new ParseUUIDPipe()) id: string) {
     const brand = await this.brandService.getBrandById(id);
     if (!brand) {
       throw new NotFoundException(`Brand with ID ${id} not found`);
@@ -267,7 +268,7 @@ export class BrandController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient role' })
   async update(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateBrandDto: UpdateBrandDto,
   ) {
     const updatedBrand = await this.brandService.updateBrand(
@@ -317,7 +318,7 @@ export class BrandController {
   @ApiResponse({ status: 404, description: 'Brand not found' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async deleteBrand(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
   ): Promise<{ message: string; deletedBrand: Brand }> {
     try {
       const deletedBrand = await this.brandService.deleteBrand(id);

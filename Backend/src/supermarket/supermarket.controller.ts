@@ -132,20 +132,20 @@ export class SupermarketController {
   // }
 
   // @Get(':id')
-  // findOne(@Param('id') id: string) {
+  // findOne(@Param('id', new ParseUUIDPipe()) id: string) {
   //   return this.supermarketService.findOne(+id);
   // }
 
   // @Patch(':id')
   // update(
-  //   @Param('id') id: string,
+  //   @Param('id', new ParseUUIDPipe()) id: string,
   //   @Body() updateSupermarketDto: UpdateSupermarketDto,
   // ) {
   //   return this.supermarketService.update(+id, updateSupermarketDto);
   // }
 
   // @Delete(':id')
-  // remove(@Param('id') id: string) {
+  // remove(@Param('id', new ParseUUIDPipe()) id: string) {
   //   return this.supermarketService.remove(+id);
   // }
 }

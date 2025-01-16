@@ -14,6 +14,7 @@ import {
   Delete,
   InternalServerErrorException,
   ConflictException,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -203,7 +204,7 @@ export class ProductController {
   @ApiResponse({ status: 404, description: 'Product not found' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient role' })
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
     const product = await this.productService.getProductById(id);
     if (!product) {
       throw new NotFoundException('Product not found');
@@ -232,7 +233,7 @@ export class ProductController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient role' })
   async update(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateProductDto: UpdateProductDto,
   ) {
     const updatedProduct = await this.productService.updateProduct(
@@ -308,7 +309,7 @@ export class ProductController {
   })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async deleteProduct(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
   ): Promise<{ message: string; deletedProduct: Product }> {
     try {
       const deletedProduct = await this.productService.deleteProduct(id);

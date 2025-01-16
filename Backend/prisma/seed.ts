@@ -89,6 +89,14 @@ async function main() {
     });
   }
 
+  const brands = [{ name: 'Nestle' }, { name: 'Mavesa' }, { name: 'Heinz' }];
+
+  for (const brand of brands) {
+    await prisma.brand.create({
+      data: brand,
+    });
+  }
+
   console.log('🌱🌱🌱 Database has been seeded. 🌱🌱🌱');
   console.log('🌱🌱🌱 Database has been seeded. 🌱🌱🌱');
   console.log('🌱🌱🌱 Database has been seeded. 🌱🌱🌱');
