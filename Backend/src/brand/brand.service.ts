@@ -3,8 +3,9 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Brand, Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -117,11 +118,46 @@ export class BrandService {
     });
   }
 
-  // update(id: number, data: Prisma.BrandUpdateInput) {
-  //   return `This action updates a #${id} brand`;
-  // }
+  async updateBrand(id: string, updateBrandDto: Prisma.BrandUpdateInput) {
+    try {
+      const updatedBrand = await this.prisma.brand.update({
+        where: { id },
+        data: updateBrandDto,
+        include: {
+          brandProducts: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      });
+      return updatedBrand;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException(`Brand with ID ${id} not found`);
+        }
+        if (error.code === 'P2002') {
+          throw new ConflictException('Brand name must be unique');
+        }
+      }
+      throw error;
+    }
+  }
 
-  // remove(id: number) {
-  //   return `This action removes a #${id} brand`;
-  // }
+  async deleteBrand(id: string): Promise<Brand> {
+    try {
+      const deletedBrand = await this.prisma.brand.delete({
+        where: { id },
+      });
+      return deletedBrand;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException(`Brand with ID ${id} not found`);
+        }
+      }
+      throw error;
+    }
+  }
 }

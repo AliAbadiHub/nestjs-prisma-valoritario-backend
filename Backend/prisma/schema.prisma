@@ -27,15 +27,31 @@ enum ProductCategory {
   GROCERY
 }
 
+enum ContributionType {
+  PRICE_UPDATE
+  PRICE_CONFIRMATION
+  AVAILABILITY_UPDATE
+  NEW_PRODUCT
+  PRODUCT_CORRECTION
+}
+
+enum NotificationType {
+  PRICE_CHANGE
+  AVAILABILITY_CHANGE
+  PRODUCT_UPDATE
+}
+
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
+  id            String                @id @default(uuid())
+  email         String                @unique
   password      String
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  role          Role           @default(BASIC)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  role          Role                  @default(BASIC)
   profile       Profile?
   shoppingLists ShoppingList[]
+  contributions ProductContribution[]
+  notifications Notification[]
 }
 
 model Profile {
@@ -47,6 +63,9 @@ model Profile {
   lastName    String?
   dateOfBirth DateTime?
   city        String
+  address     String?
+  latitude    Float?
+  longitude   Float?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
@@ -96,7 +115,7 @@ model Supermarket {
   franchiseId         String?
   openingHours        Json
   phoneNumber         String?
-  address             String
+  address             String?
   city                String
   website             String?
   latitude            Float?
@@ -109,18 +128,19 @@ model Supermarket {
 }
 
 model SupermarketProduct {
-  id             String        @id @default(uuid())
-  supermarket    Supermarket   @relation(fields: [supermarketId], references: [id])
+  id             String                @id @default(uuid())
+  supermarket    Supermarket           @relation(fields: [supermarketId], references: [id])
   supermarketId  String
-  product        Product       @relation(fields: [productId], references: [id])
+  product        Product               @relation(fields: [productId], references: [id])
   productId      String
-  brandProduct   BrandProduct? @relation(fields: [brandProductId], references: [id])
+  brandProduct   BrandProduct?         @relation(fields: [brandProductId], references: [id])
   brandProductId String?
   unit           String
   price          Float
-  inStock        Boolean       @default(true)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  inStock        Boolean               @default(true)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  contributions  ProductContribution[]
 
   @@unique([supermarketId, productId, brandProductId])
 }
@@ -158,4 +178,31 @@ model ShoppingListItem {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ProductContribution {
+  id                   String             @id @default(uuid())
+  user                 User               @relation(fields: [userId], references: [id])
+  userId               String
+  supermarketProduct   SupermarketProduct @relation(fields: [supermarketProductId], references: [id])
+  supermarketProductId String
+  type                 ContributionType
+  oldValue             Json? // For storing previous price or availability
+  newValue             Json // For storing new price, availability, or other details
+  createdAt            DateTime           @default(now())
+
+  @@index([supermarketProductId, type, createdAt])
+  @@index([userId, type])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  user      User             @relation(fields: [userId], references: [id])
+  userId    String
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
 }

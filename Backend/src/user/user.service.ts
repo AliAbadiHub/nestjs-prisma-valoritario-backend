@@ -1,10 +1,11 @@
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -56,7 +57,18 @@ export class UserService {
   async getUserById(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: { id: true, email: true, createdAt: true, role: true },
+      select: {
+        id: true,
+        email: true,
+        createdAt: true,
+        role: true,
+        _count: {
+          select: {
+            contributions: true,
+            notifications: true,
+          },
+        },
+      },
     });
     if (!user) throw new NotFoundException('User not found');
     return user;
@@ -86,6 +98,19 @@ export class UserService {
     throw error;
   }
 
+  // async getUserContributions(userId: string, page: number, limit: number) {
+  //   const skip = (page - 1) * limit;
+  //   const contributions = await this.prisma.productContribution.findMany({
+  //     where: { userId },
+  //     skip,
+  //     take: limit,
+  //     orderBy: { createdAt: 'desc' },
+  //     include: { supermarketProduct: true },
+  //   });
+  //   const total = await this.prisma.productContribution.count({ where: { userId } });
+  //   return { contributions, total, page, limit };
+  // }
+
   async updateUserPassword(id: string, newPassword: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
@@ -100,18 +125,34 @@ export class UserService {
     });
   }
 
-  async deleteUser(id: string): Promise<boolean> {
+  async deleteUser(id: string): Promise<Partial<User>> {
     try {
-      await this.prisma.user.delete({
+      const deletedUser = await this.prisma.user.delete({
         where: { id },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
-      return true;
+      return deletedUser;
     } catch (error) {
-      if (error.code === 'P2025') {
-        // P2025 is Prisma's error code for record not found
-        return false;
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException(`User with ID ${id} not found`);
+        }
+        if (error.code === 'P2003') {
+          throw new ConflictException(
+            'Cannot delete user due to existing references',
+          );
+        }
       }
-      throw error;
+      console.error('Unexpected error in deleteUser service method:', error);
+      throw new InternalServerErrorException(
+        'An unexpected error occurred while deleting the user',
+      );
     }
   }
 }

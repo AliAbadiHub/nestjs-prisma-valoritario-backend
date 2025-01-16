@@ -205,11 +205,6 @@ export class ProductService {
 
   async deleteProduct(id: string): Promise<Product> {
     try {
-      // Validate UUID format
-      if (!isUUID(id)) {
-        throw new BadRequestException('Invalid product ID format');
-      }
-
       const deletedProduct = await this.prisma.product.delete({
         where: { id },
         include: {
@@ -223,9 +218,6 @@ export class ProductService {
 
       return deletedProduct;
     } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new NotFoundException(`Product with ID ${id} not found`);
@@ -236,7 +228,6 @@ export class ProductService {
           );
         }
       }
-      // Log the error for debugging
       console.error('Unexpected error in deleteProduct service method:', error);
       throw new InternalServerErrorException(
         'An unexpected error occurred while deleting the product',

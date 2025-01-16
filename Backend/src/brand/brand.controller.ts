@@ -3,18 +3,20 @@ import {
   Get,
   Post,
   Body,
-  // Patch,
-  // Delete,
+  Patch,
+  Delete,
   UseGuards,
   UsePipes,
   ValidationPipe,
   Query,
   Param,
   NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { BrandService } from './brand.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
-// import { UpdateBrandDto } from './dto/update-brand.dto';
+import { UpdateBrandDto } from './dto/update-brand.dto';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -25,7 +27,7 @@ import {
   ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { Brand, Role } from '@prisma/client';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/role.guard';
 import { Roles } from 'src/auth/roles.decorators';
@@ -244,13 +246,97 @@ export class BrandController {
     return brand;
   }
 
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateBrandDto: UpdateBrandDto) {
-  //   return this.brandService.update(+id, updateBrandDto);
-  // }
+  @Patch(':id')
+  @Roles(Role.ADMIN, Role.MERCHANT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiSecurity('admin')
+  @ApiSecurity('merchant')
+  @ApiOperation({ summary: 'Update a specific brand by ID' })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: 'UUID of the brand',
+    example: '9d4cc102-7bc8-4d60-a539-0dc98ca9323b',
+  })
+  @ApiBody({ type: UpdateBrandDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully updated the brand',
+  })
+  @ApiResponse({ status: 404, description: 'Brand not found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient role' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateBrandDto: UpdateBrandDto,
+  ) {
+    const updatedBrand = await this.brandService.updateBrand(
+      id,
+      updateBrandDto,
+    );
+    if (!updatedBrand) {
+      throw new NotFoundException('Brand not found');
+    }
+    return updatedBrand;
+  }
 
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.brandService.remove(+id);
-  // }
+  @Delete(':id')
+  @Roles(Role.ADMIN, Role.MERCHANT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiSecurity('admin')
+  @ApiSecurity('merchant')
+  @ApiOperation({ summary: 'Delete a specific brand by ID' })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: 'UUID of the brand to delete',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Brand successfully deleted',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+        deletedBrand: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+            logo: { type: 'string', nullable: true },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request - Invalid ID format' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient role' })
+  @ApiResponse({ status: 404, description: 'Brand not found' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async deleteBrand(
+    @Param('id') id: string,
+  ): Promise<{ message: string; deletedBrand: Brand }> {
+    try {
+      const deletedBrand = await this.brandService.deleteBrand(id);
+      return {
+        message: 'Brand successfully deleted',
+        deletedBrand,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      // Log the error for debugging
+      console.error('Unexpected error in deleteBrand:', error);
+      throw new InternalServerErrorException(
+        'An unexpected error occurred while deleting the brand',
+      );
+    }
+  }
 }

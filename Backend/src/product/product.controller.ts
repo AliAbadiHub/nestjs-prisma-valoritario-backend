@@ -13,6 +13,8 @@ import {
   BadRequestException,
   Delete,
   InternalServerErrorException,
+  ConflictException,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -27,7 +29,7 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Roles } from 'src/auth/roles.decorators';
-import { ProductCategory, Role } from '@prisma/client';
+import { Product, ProductCategory, Role } from '@prisma/client';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/role.guard';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -266,7 +268,32 @@ export class ProductController {
           properties: {
             id: { type: 'string' },
             name: { type: 'string' },
-            // Add other relevant product properties here
+            description: { type: 'string', nullable: true },
+            category: {
+              type: 'string',
+              enum: ['PRODUCE', 'DAIRY', 'BUTCHER', 'GROCERY'],
+            },
+            units: { type: 'array', items: { type: 'string' } },
+            isTypicallyBranded: { type: 'boolean' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+            brandProducts: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  name: { type: 'string' },
+                  brand: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      name: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -276,10 +303,14 @@ export class ProductController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient role' })
   @ApiResponse({ status: 404, description: 'Product not found' })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict - Cannot delete due to existing references',
+  })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async deleteProduct(
-    @Param('id') id: string,
-  ): Promise<{ message: string; deletedProduct: any }> {
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<{ message: string; deletedProduct: Product }> {
     try {
       const deletedProduct = await this.productService.deleteProduct(id);
       return {
@@ -287,13 +318,13 @@ export class ProductController {
         deletedProduct,
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException ||
+        error instanceof ConflictException
+      ) {
         throw error;
       }
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      // Log the error for debugging
       console.error('Unexpected error in deleteProduct:', error);
       throw new InternalServerErrorException(
         'An unexpected error occurred while deleting the product',

@@ -11,6 +11,10 @@ import {
   Query,
   NotFoundException,
   UseGuards,
+  BadRequestException,
+  ConflictException,
+  InternalServerErrorException,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiOperation,
@@ -26,7 +30,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { RolesGuard } from 'src/auth/guards/role.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { Role } from '@prisma/client';
+import { Role, User } from '@prisma/client';
 import { Roles } from 'src/auth/roles.decorators';
 import { UserOwnershipGuard } from 'src/auth/guards/user-ownership.guard';
 
@@ -139,18 +143,66 @@ export class UserController {
   @ApiParam({
     name: 'id',
     required: true,
-    description: 'ID of the user to delete',
+    description: 'UUID of the user to delete',
   })
   @ApiResponse({
     status: 200,
-    description: 'The user has been successfully deleted.',
+    description: 'User successfully deleted',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+        deletedUser: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            email: { type: 'string' },
+            role: {
+              type: 'string',
+              enum: ['BASIC', 'VERIFIED', 'MERCHANT', 'ADMIN'],
+            },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
   })
-  @ApiResponse({ status: 404, description: 'User not found.' })
-  async deleteUser(@Param('id') id: string) {
-    const deleted = await this.userService.deleteUser(id);
-    if (!deleted) {
-      throw new NotFoundException('User not found');
+  @ApiResponse({ status: 400, description: 'Bad Request - Invalid ID format' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Insufficient permissions',
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict - Cannot delete user due to existing references',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async deleteUser(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<{ message: string; deletedUser: Partial<User> }> {
+    try {
+      const deletedUser = await this.userService.deleteUser(id);
+      return {
+        message: 'User successfully deleted',
+        deletedUser,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      console.error('Unexpected error in deleteUser:', error);
+      throw new InternalServerErrorException(
+        'An unexpected error occurred while deleting the user',
+      );
     }
-    return { message: 'User successfully deleted' };
   }
 }

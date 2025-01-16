@@ -4,6 +4,12 @@ CREATE TYPE "Role" AS ENUM ('BASIC', 'VERIFIED', 'MERCHANT', 'ADMIN');
 -- CreateEnum
 CREATE TYPE "ProductCategory" AS ENUM ('PRODUCE', 'DAIRY', 'BUTCHER', 'GROCERY');
 
+-- CreateEnum
+CREATE TYPE "ContributionType" AS ENUM ('PRICE_UPDATE', 'PRICE_CONFIRMATION', 'AVAILABILITY_UPDATE', 'NEW_PRODUCT', 'PRODUCT_CORRECTION');
+
+-- CreateEnum
+CREATE TYPE "NotificationType" AS ENUM ('PRICE_CHANGE', 'AVAILABILITY_CHANGE', 'PRODUCT_UPDATE');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
@@ -25,6 +31,9 @@ CREATE TABLE "Profile" (
     "lastName" TEXT,
     "dateOfBirth" TIMESTAMP(3),
     "city" TEXT NOT NULL,
+    "address" TEXT,
+    "latitude" DOUBLE PRECISION,
+    "longitude" DOUBLE PRECISION,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -75,7 +84,7 @@ CREATE TABLE "Supermarket" (
     "franchiseId" TEXT,
     "openingHours" JSONB NOT NULL,
     "phoneNumber" TEXT,
-    "address" TEXT NOT NULL,
+    "address" TEXT,
     "city" TEXT NOT NULL,
     "website" TEXT,
     "latitude" DOUBLE PRECISION,
@@ -138,6 +147,31 @@ CREATE TABLE "ShoppingListItem" (
     CONSTRAINT "ShoppingListItem_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "ProductContribution" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "supermarketProductId" TEXT NOT NULL,
+    "type" "ContributionType" NOT NULL,
+    "oldValue" JSONB,
+    "newValue" JSONB NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ProductContribution_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Notification" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "type" "NotificationType" NOT NULL,
+    "isRead" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -164,6 +198,15 @@ CREATE UNIQUE INDEX "SupermarketProduct_supermarketId_productId_brandProductId_k
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Franchise_name_key" ON "Franchise"("name");
+
+-- CreateIndex
+CREATE INDEX "ProductContribution_supermarketProductId_type_createdAt_idx" ON "ProductContribution"("supermarketProductId", "type", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ProductContribution_userId_type_idx" ON "ProductContribution"("userId", "type");
+
+-- CreateIndex
+CREATE INDEX "Notification_userId_isRead_idx" ON "Notification"("userId", "isRead");
 
 -- AddForeignKey
 ALTER TABLE "Profile" ADD CONSTRAINT "Profile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -197,3 +240,12 @@ ALTER TABLE "ShoppingListItem" ADD CONSTRAINT "ShoppingListItem_productId_fkey" 
 
 -- AddForeignKey
 ALTER TABLE "ShoppingListItem" ADD CONSTRAINT "ShoppingListItem_brandProductId_fkey" FOREIGN KEY ("brandProductId") REFERENCES "BrandProduct"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProductContribution" ADD CONSTRAINT "ProductContribution_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProductContribution" ADD CONSTRAINT "ProductContribution_supermarketProductId_fkey" FOREIGN KEY ("supermarketProductId") REFERENCES "SupermarketProduct"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
