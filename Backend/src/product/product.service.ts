@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma, Product, ProductCategory } from '@prisma/client';
-import { isUUID } from 'class-validator';
 
 @Injectable()
 export class ProductService {

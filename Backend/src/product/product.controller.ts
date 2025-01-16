@@ -14,7 +14,6 @@ import {
   Delete,
   InternalServerErrorException,
   ConflictException,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -309,7 +308,7 @@ export class ProductController {
   })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async deleteProduct(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id') id: string,
   ): Promise<{ message: string; deletedProduct: Product }> {
     try {
       const deletedProduct = await this.productService.deleteProduct(id);
