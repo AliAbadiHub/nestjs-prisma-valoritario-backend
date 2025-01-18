@@ -1,6 +1,6 @@
 import {
   Controller,
-  // Get,
+  Get,
   Post,
   Body,
   // Patch,
@@ -9,6 +9,10 @@ import {
   UseGuards,
   UsePipes,
   ValidationPipe,
+  Query,
+  NotFoundException,
+  Param,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { SupermarketService } from './supermarket.service';
 import { CreateSupermarketDto } from './dto/create-supermarket.dto';
@@ -17,6 +21,8 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
+  ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiSecurity,
   ApiTags,
@@ -126,15 +132,153 @@ export class SupermarketController {
     return this.supermarketService.createSupermarket(createSupermarketDto);
   }
 
-  // @Get()
-  // findAll() {
-  //   return this.supermarketService.findAll();
-  // }
+  @Get()
+  @Roles(Role.ADMIN, Role.MERCHANT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiSecurity('admin')
+  @ApiSecurity('merchant')
+  @ApiOperation({ summary: 'Get all supermarkets with filtering options' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number for pagination',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'name',
+    required: false,
+    type: String,
+    description: 'Filter products by name (case-insensitive, partial match)',
+  })
+  @ApiQuery({
+    name: 'city',
+    required: false,
+    type: String,
+    description: 'Filter supermarkets by city',
+  })
+  @ApiQuery({
+    name: 'franchiseId',
+    required: false,
+    type: String,
+    description: 'Filter supermarkets by franchise ID',
+  })
+  @ApiQuery({
+    name: 'hasWebsite',
+    required: false,
+    type: Boolean,
+    description: 'Filter supermarkets by whether they have a website',
+  })
+  @ApiQuery({
+    name: 'hasPhoneNumber',
+    required: false,
+    type: Boolean,
+    description: 'Filter supermarkets by whether they have a phone number',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully retrieved supermarkets',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient role' })
+  async findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('name') name?: string,
+    @Query('city') city?: string,
+    @Query('franchiseId') franchiseId?: string,
+    @Query('hasWebsite') hasWebsite?: string,
+    @Query('hasPhoneNumber') hasPhoneNumber?: string,
+  ) {
+    const parsedPage = page ? parseInt(page, 10) : 1;
+    const parsedLimit = limit ? parseInt(limit, 10) : 10;
+    const parsedHasWebsite = hasWebsite
+      ? hasWebsite.toLowerCase() === 'true'
+      : undefined;
+    const parsedHasPhoneNumber = hasPhoneNumber
+      ? hasPhoneNumber.toLowerCase() === 'true'
+      : undefined;
 
-  // @Get(':id')
-  // findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-  //   return this.supermarketService.findOne(+id);
-  // }
+    return this.supermarketService.findAll(parsedPage, parsedLimit, {
+      name,
+      city,
+      franchiseId,
+      hasWebsite: parsedHasWebsite,
+      hasPhoneNumber: parsedHasPhoneNumber,
+    });
+  }
+
+  @Get(':id')
+  @Roles(Role.ADMIN, Role.MERCHANT, Role.VERIFIED)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiSecurity('admin')
+  @ApiSecurity('merchant')
+  @ApiSecurity('verified')
+  @ApiOperation({ summary: 'Get a specific supermarket by ID' })
+  @ApiParam({
+    name: 'id',
+    description: 'Supermarket ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully retrieved the supermarket',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', format: 'uuid' },
+        name: { type: 'string' },
+        franchiseId: { type: 'string', format: 'uuid', nullable: true },
+        openingHours: { type: 'object' },
+        phoneNumber: { type: 'string', nullable: true },
+        address: { type: 'string', nullable: true },
+        city: { type: 'string' },
+        website: { type: 'string', nullable: true },
+        latitude: { type: 'number', format: 'float', nullable: true },
+        longitude: { type: 'number', format: 'float', nullable: true },
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' },
+        franchise: {
+          type: 'object',
+          nullable: true,
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            name: { type: 'string' },
+          },
+        },
+        supermarketProducts: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              productId: { type: 'string', format: 'uuid' },
+              price: { type: 'number' },
+              // Add other relevant properties in the future
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient role' })
+  @ApiResponse({ status: 404, description: 'Supermarket not found' })
+  async getSupermarketById(@Param('id', new ParseUUIDPipe()) id: string) {
+    const supermarket = await this.supermarketService.getSupermarketById(id);
+    if (!supermarket) {
+      throw new NotFoundException(`Supermarket with ID ${id} not found`);
+    }
+    return supermarket;
+  }
 
   // @Patch(':id')
   // update(

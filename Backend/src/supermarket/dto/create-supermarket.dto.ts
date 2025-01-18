@@ -6,6 +6,7 @@ import {
   IsNumber,
   IsObject,
   IsUrl,
+  IsUUID,
 } from 'class-validator';
 
 export class CreateSupermarketDto {
@@ -18,7 +19,7 @@ export class CreateSupermarketDto {
     required: false,
   })
   @IsOptional()
-  @IsString()
+  @IsUUID()
   franchiseId?: string;
 
   @ApiProperty({
