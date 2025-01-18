@@ -3,9 +3,8 @@ import {
   Get,
   Post,
   Body,
-  // Patch,
-  // Param,
-  // Delete,
+  Patch,
+  Delete,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -16,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { SupermarketService } from './supermarket.service';
 import { CreateSupermarketDto } from './dto/create-supermarket.dto';
-// import { UpdateSupermarketDto } from './dto/update-supermarket.dto';
+import { UpdateSupermarketDto } from './dto/update-supermarket.dto';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -279,17 +278,47 @@ export class SupermarketController {
     }
     return supermarket;
   }
+  @Patch(':id')
+  @Roles(Role.ADMIN, Role.MERCHANT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiSecurity('admin')
+  @ApiSecurity('merchant')
+  @ApiOperation({ summary: 'Update a supermarket' })
+  @ApiParam({
+    name: 'id',
+    description: 'Supermarket ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiBody({ type: UpdateSupermarketDto })
+  @ApiResponse({ status: 200, description: 'Supermarket updated successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient role' })
+  @ApiResponse({ status: 404, description: 'Supermarket not found' })
+  async update(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() updateSupermarketDto: UpdateSupermarketDto,
+  ) {
+    return this.supermarketService.updateSupermarket(id, updateSupermarketDto);
+  }
 
-  // @Patch(':id')
-  // update(
-  //   @Param('id', new ParseUUIDPipe()) id: string,
-  //   @Body() updateSupermarketDto: UpdateSupermarketDto,
-  // ) {
-  //   return this.supermarketService.update(+id, updateSupermarketDto);
-  // }
-
-  // @Delete(':id')
-  // remove(@Param('id', new ParseUUIDPipe()) id: string) {
-  //   return this.supermarketService.remove(+id);
-  // }
+  @Delete(':id')
+  @Roles(Role.ADMIN, Role.MERCHANT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiSecurity('admin')
+  @ApiSecurity('merchant')
+  @ApiOperation({ summary: 'Delete a supermarket' })
+  @ApiParam({
+    name: 'id',
+    description: 'Supermarket ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({ status: 200, description: 'Supermarket deleted successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient role' })
+  @ApiResponse({ status: 404, description: 'Supermarket not found' })
+  async remove(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.supermarketService.deleteSupermarket(id);
+  }
 }

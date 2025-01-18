@@ -156,7 +156,44 @@ export class SupermarketService {
     });
   }
 
-  // remove(id: number) {
-  //   return `This action removes a #${id} supermarket`;
-  // }
+  async updateSupermarket(
+    id: string,
+    updateSupermarketDto: Prisma.SupermarketUpdateInput,
+  ) {
+    try {
+      const existingSupermarket = await this.prisma.supermarket.findUnique({
+        where: { id },
+      });
+
+      if (!existingSupermarket) {
+        throw new NotFoundException(`Supermarket with ID ${id} not found`);
+      }
+
+      return this.prisma.supermarket.update({
+        where: { id },
+        data: updateSupermarketDto,
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new ConflictException(
+            'A supermarket with this name and address already exists',
+          );
+        }
+      }
+    }
+  }
+  async deleteSupermarket(id: string) {
+    const existingSupermarket = await this.prisma.supermarket.findUnique({
+      where: { id },
+    });
+
+    if (!existingSupermarket) {
+      throw new NotFoundException(`Supermarket with ID ${id} not found`);
+    }
+
+    return this.prisma.supermarket.delete({
+      where: { id },
+    });
+  }
 }
