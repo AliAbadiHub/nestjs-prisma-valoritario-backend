@@ -4,17 +4,17 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-// import { UpdateBrandproductDto } from './dto/update-brandproduct.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateBrandProductDto } from './dto/create-brandproduct.dto';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class BrandProductService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createBrandProduct(data: CreateBrandProductDto) {
-    const { brandId, productId } = data;
+  async createBrandProduct(data: Prisma.BrandProductCreateInput) {
+    const { brand, product } = data;
+    const brandId = brand.connect.id;
+    const productId = product.connect.id;
 
     // Use the hardcoded unbranded UUID if brandId is not provided
     const unbrandedId = '00000000-0000-0000-0000-UNBRANDED00';
@@ -131,17 +131,103 @@ export class BrandProductService {
         },
       });
 
+      if (!brandProduct) {
+        throw new NotFoundException(`BrandProduct with ID ${id} not found.`);
+      }
+
       return brandProduct;
     } catch (error) {
-      throw new NotFoundException(`BrandProduct with ID ${id} not found.`);
+      throw new InternalServerErrorException(
+        'An unexpected error occurred while retrieving the BrandProduct.',
+      );
     }
   }
 
-  // update(id: number, updateBrandproductDto: UpdateBrandproductDto) {
-  //   return `This action updates a #${id} brandproduct`;
-  // }
+  async updateBrandProduct(
+    id: string,
+    data: Prisma.BrandProductUpdateInput, // Directly using Prisma's type
+  ) {
+    try {
+      // Check if the BrandProduct exists
+      const existingBrandProduct = await this.prisma.brandProduct.findUnique({
+        where: { id },
+      });
 
-  remove(id: number) {
-    return `This action removes a #${id} brandproduct`;
+      if (!existingBrandProduct) {
+        throw new NotFoundException(`BrandProduct with ID ${id} not found.`);
+      }
+
+      // Check for conflicts (duplicate brandId + productId combination)
+      const { brand, product } = data;
+      const brandId = brand.connect.id;
+      const productId = product.connect.id;
+      if (brandId && productId) {
+        const conflict = await this.prisma.brandProduct.findFirst({
+          where: {
+            brandId: brandId as string,
+            productId: productId as string,
+            NOT: { id }, // Exclude the current entry
+          },
+        });
+
+        if (conflict) {
+          throw new ConflictException(
+            'A BrandProduct with this combination already exists.',
+          );
+        }
+      }
+
+      // Perform the update
+      const updatedBrandProduct = await this.prisma.brandProduct.update({
+        where: { id },
+        data,
+      });
+
+      return updatedBrandProduct;
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ConflictException
+      ) {
+        throw error;
+      }
+
+      console.error('Unexpected error in updateBrandProduct:', error);
+      throw new InternalServerErrorException(
+        'An unexpected error occurred while updating the BrandProduct.',
+      );
+    }
+  }
+
+  async deleteBrandProduct(id: string) {
+    try {
+      // Check if the BrandProduct exists
+      const existingBrandProduct = await this.prisma.brandProduct.findUnique({
+        where: { id },
+      });
+
+      if (!existingBrandProduct) {
+        throw new NotFoundException(`BrandProduct with ID ${id} not found.`);
+      }
+
+      // Perform the deletion
+      const deletedBrandProduct = await this.prisma.brandProduct.delete({
+        where: { id },
+      });
+
+      return {
+        message: 'BrandProduct successfully deleted.',
+        deletedBrandProduct,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      console.error('Unexpected error in deleteBrandProduct:', error);
+      throw new InternalServerErrorException(
+        'An unexpected error occurred while deleting the BrandProduct.',
+      );
+    }
   }
 }

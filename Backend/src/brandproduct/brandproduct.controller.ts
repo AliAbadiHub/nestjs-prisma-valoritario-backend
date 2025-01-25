@@ -3,18 +3,19 @@ import {
   Get,
   Post,
   Body,
-  // Patch,
+  Patch,
   Param,
-  Delete,
   UsePipes,
   ValidationPipe,
   UseGuards,
   BadRequestException,
   Query,
   NotFoundException,
+  ParseUUIDPipe,
+  Delete,
 } from '@nestjs/common';
 import { CreateBrandProductDto } from './dto/create-brandproduct.dto';
-// import { UpdateBrandproductDto } from './dto/update-brandproduct.dto';
+import { UpdateBrandProductDto } from './dto/update-brandproduct.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -26,7 +27,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { BrandProductService } from './brandproduct.service';
-import { Role } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import { Roles } from 'src/auth/roles.decorators';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/role.guard';
@@ -97,7 +98,12 @@ export class BrandProductController {
   })
   @UsePipes(ValidationPipe)
   async create(@Body() createBrandProductDto: CreateBrandProductDto) {
-    return this.brandProductService.createBrandProduct(createBrandProductDto);
+    const { brandId, productId } = createBrandProductDto;
+
+    return this.brandProductService.createBrandProduct({
+      brand: { connect: { id: brandId } },
+      product: { connect: { id: productId } },
+    });
   }
 
   @Get()
@@ -244,16 +250,103 @@ export class BrandProductController {
     return brandProduct;
   }
 
-  // @Patch(':id')
-  // update(
-  //   @Param('id') id: string,
-  //   @Body() updateBrandproductDto: UpdateBrandproductDto,
-  // ) {
-  //   return this.brandProductService.update(+id, updateBrandproductDto);
-  // }
+  @Patch(':id')
+  @Roles(Role.ADMIN, Role.MERCHANT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiSecurity('admin')
+  @ApiSecurity('merchant')
+  @ApiOperation({ summary: 'Update a BrandProduct by its ID' })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: 'UUID of the BrandProduct to update',
+    example: '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+  })
+  @ApiBody({
+    type: UpdateBrandProductDto,
+    description: 'Fields to update in the BrandProduct',
+    examples: {
+      updateBrand: {
+        summary: 'Update the brand',
+        value: {
+          brandId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        },
+      },
+      updateProduct: {
+        summary: 'Update the product',
+        value: {
+          productId: '55555555-5555-5555-5555-555555555555',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully updated the BrandProduct.',
+    schema: {
+      example: {
+        id: '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        brandId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        productId: '55555555-5555-5555-5555-555555555555',
+        createdAt: '2025-01-20T12:00:00.000Z',
+        updatedAt: '2025-01-21T12:00:00.000Z',
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'BrandProduct not found.' })
+  @ApiResponse({
+    status: 409,
+    description: 'A BrandProduct with the same combination already exists.',
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request - Invalid input.' })
+  @ApiResponse({ status: 500, description: 'Internal Server Error.' })
+  @UsePipes(ValidationPipe)
+  async updateBrandProduct(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateBrandProductDto: UpdateBrandProductDto,
+  ) {
+    const { brandId, productId } = updateBrandProductDto;
+
+    const data: Prisma.BrandProductUpdateInput = {
+      ...(brandId && { brand: { connect: { id: brandId } } }),
+      ...(productId && { product: { connect: { id: productId } } }),
+    };
+
+    return this.brandProductService.updateBrandProduct(id, data);
+  }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.brandProductService.remove(+id);
+  @Roles(Role.ADMIN, Role.MERCHANT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiSecurity('admin')
+  @ApiSecurity('merchant')
+  @ApiOperation({
+    summary: 'Delete a BrandProduct by its ID',
+  })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: 'UUID of the BrandProduct to delete',
+    example: '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully deleted the BrandProduct.',
+    schema: {
+      example: {
+        message: 'BrandProduct successfully deleted.',
+        deletedBrandProduct: {
+          id: '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          brandId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+          productId: '55555555-5555-5555-5555-555555555555',
+          createdAt: '2025-01-20T12:00:00.000Z',
+          updatedAt: '2025-01-21T12:00:00.000Z',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'BrandProduct not found.' })
+  async deleteBrandProduct(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.brandProductService.deleteBrandProduct(id);
   }
 }
