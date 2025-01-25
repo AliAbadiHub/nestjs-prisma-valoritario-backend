@@ -97,6 +97,17 @@ async function main() {
     });
   }
 
+  const franchises = [
+    { name: 'Mas por Menos', logo: 'https://example.com/maspormenos-logo.png' },
+    { name: 'Aikoz', logo: 'https://example.com/aikoz-logo.png' },
+  ];
+
+  for (const franchise of franchises) {
+    await prisma.franchise.create({
+      data: franchise,
+    });
+  }
+
   console.log('🌱🌱🌱 Database has been seeded. 🌱🌱🌱');
   console.log('🌱🌱🌱 Database has been seeded. 🌱🌱🌱');
   console.log('🌱🌱🌱 Database has been seeded. 🌱🌱🌱');

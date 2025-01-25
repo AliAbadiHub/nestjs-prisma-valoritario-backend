@@ -111,6 +111,8 @@ export class ProductController {
   @Get()
   @Roles(Role.ADMIN, Role.MERCHANT)
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiSecurity('admin')
+  @ApiSecurity('merchant')
   @ApiOperation({ summary: 'Get all products with filtering options' })
   @ApiQuery({
     name: 'page',
