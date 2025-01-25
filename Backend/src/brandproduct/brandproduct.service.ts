@@ -4,16 +4,17 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { UpdateBrandproductDto } from './dto/update-brandproduct.dto';
+// import { UpdateBrandproductDto } from './dto/update-brandproduct.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateBrandProductDto } from './dto/create-brandproduct.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class BrandProductService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createBrandProduct(data: CreateBrandProductDto) {
-    const { brandId, productId, name } = data;
+    const { brandId, productId } = data;
 
     // Use the hardcoded unbranded UUID if brandId is not provided
     const unbrandedId = '00000000-0000-0000-0000-UNBRANDED00';
@@ -41,7 +42,6 @@ export class BrandProductService {
         data: {
           brandId: brandToUse,
           productId,
-          name,
         },
       });
     } catch (error) {
@@ -58,17 +58,88 @@ export class BrandProductService {
     }
   }
 
-  findAll() {
-    return `This action returns all brandproduct`;
+  async getBrandProducts(
+    page: number,
+    limit: number,
+    filters: { productId?: string; brandId?: string },
+  ) {
+    const { productId, brandId } = filters;
+
+    try {
+      const skip = (page - 1) * limit;
+
+      // Construct the "where" clause dynamically
+      const whereClause: Prisma.BrandProductWhereInput = {};
+      if (productId) whereClause.productId = productId;
+      if (brandId) whereClause.brandId = brandId;
+
+      // Fetch paginated data and total count
+      const [brandProducts, total] = await Promise.all([
+        this.prisma.brandProduct.findMany({
+          where: whereClause,
+          skip,
+          take: limit,
+          select: {
+            id: true,
+            createdAt: true,
+            updatedAt: true,
+            brand: {
+              select: {
+                id: true,
+                name: true, // Include brand name
+              },
+            },
+            product: {
+              select: {
+                id: true,
+                name: true, // Include product name
+              },
+            },
+          },
+        }),
+        this.prisma.brandProduct.count({ where: whereClause }),
+      ]);
+
+      return { brandProducts, total, page, limit };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'An error occurred while retrieving BrandProducts.',
+      );
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} brandproduct`;
+  async getBrandProductById(id: string) {
+    try {
+      const brandProduct = await this.prisma.brandProduct.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          brand: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          product: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      return brandProduct;
+    } catch (error) {
+      throw new NotFoundException(`BrandProduct with ID ${id} not found.`);
+    }
   }
 
-  update(id: number, updateBrandproductDto: UpdateBrandproductDto) {
-    return `This action updates a #${id} brandproduct`;
-  }
+  // update(id: number, updateBrandproductDto: UpdateBrandproductDto) {
+  //   return `This action updates a #${id} brandproduct`;
+  // }
 
   remove(id: number) {
     return `This action removes a #${id} brandproduct`;

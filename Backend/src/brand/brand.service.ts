@@ -80,14 +80,14 @@ export class BrandService {
       };
     }
 
+    // Fetch only the fields needed
     const brands = await this.prisma.brand.findMany({
       where,
-      include: {
-        brandProducts: {
-          include: {
-            product: true,
-          },
-        },
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true, // Only return these fields
       },
       take: limit,
       skip: offset,

@@ -102,7 +102,6 @@ export class ProductService {
             brandProducts: {
               select: {
                 id: true,
-                name: true,
                 brand: {
                   select: {
                     id: true,

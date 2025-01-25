@@ -140,7 +140,29 @@ export class BrandController {
     description: 'Number of items to skip for pagination',
     example: 0,
   })
-  @ApiResponse({ status: 200, description: 'Successfully retrieved brands' })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully retrieved brands',
+    schema: {
+      example: {
+        brands: [
+          {
+            id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+            name: 'Nestle',
+            createdAt: '2025-01-20T12:00:00.000Z',
+            updatedAt: '2025-01-20T12:00:00.000Z',
+          },
+          {
+            id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+            name: 'Mavesa',
+            createdAt: '2025-01-20T12:00:00.000Z',
+            updatedAt: '2025-01-20T12:00:00.000Z',
+          },
+        ],
+        total: 2,
+      },
+    },
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient role' })
   async getBrands(

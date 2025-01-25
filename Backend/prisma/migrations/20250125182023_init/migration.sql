@@ -70,7 +70,6 @@ CREATE TABLE "BrandProduct" (
     "id" TEXT NOT NULL,
     "brandId" TEXT NOT NULL,
     "productId" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -183,9 +182,6 @@ CREATE UNIQUE INDEX "Product_name_key" ON "Product"("name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Brand_name_key" ON "Brand"("name");
-
--- CreateIndex
-CREATE UNIQUE INDEX "BrandProduct_name_key" ON "BrandProduct"("name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "BrandProduct_brandId_productId_key" ON "BrandProduct"("brandId", "productId");

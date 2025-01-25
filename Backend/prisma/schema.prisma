@@ -99,7 +99,6 @@ model BrandProduct {
   brandId             String
   product             Product              @relation(fields: [productId], references: [id])
   productId           String
-  name                String               @unique
   supermarketProducts SupermarketProduct[]
   shoppingListItems   ShoppingListItem[]
   createdAt           DateTime             @default(now())

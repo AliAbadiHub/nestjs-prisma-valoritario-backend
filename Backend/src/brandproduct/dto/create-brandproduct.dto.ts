@@ -1,13 +1,14 @@
-import { IsString, IsUUID, IsOptional } from 'class-validator';
+import { IsUUID, IsOptional } from 'class-validator';
+import { IsValidUUIDOrUnbranded } from 'src/validators/is-valid-uuid-or-unbranded.decorator';
 
 export class CreateBrandProductDto {
-  @IsUUID()
-  @IsOptional() // Admin/Merchant can omit this field
+  @IsValidUUIDOrUnbranded({
+    message:
+      'brandId must be a valid UUID (version 4) or the unbranded placeholder UUID.',
+  })
+  @IsOptional() // Allow omitting for unbranded items
   brandId?: string;
 
-  @IsUUID()
+  @IsUUID('4', { message: 'productId must be a valid UUID (version 4).' })
   productId: string;
-
-  @IsString()
-  name: string;
 }
