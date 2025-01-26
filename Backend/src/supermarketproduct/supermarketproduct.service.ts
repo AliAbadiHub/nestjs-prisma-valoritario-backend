@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, ContributionType } from '@prisma/client';
@@ -19,10 +20,42 @@ export class SupermarketProductService {
    * @throws BadRequestException if an unexpected error occurs.
    */
   async createSupermarketProduct(data: Prisma.SupermarketProductCreateInput) {
+    // Extract supermarketId and brandProductId from the connect objects
+    const supermarketId = data.supermarket.connect?.id;
+    const brandProductId = data.brandProduct.connect?.id;
+    const unit = data.unit;
+
+    if (!supermarketId || !brandProductId) {
+      throw new BadRequestException(
+        'Supermarket or BrandProduct ID is missing.',
+      );
+    }
+
+    // Check if a SupermarketProduct with the same supermarketId, brandProductId, and unit already exists
+    const existingEntry = await this.prisma.supermarketProduct.findFirst({
+      where: {
+        supermarketId,
+        brandProductId,
+        unit,
+      },
+    });
+
+    if (existingEntry) {
+      throw new ConflictException(
+        'A SupermarketProduct with this combination (supermarket, brand product, and unit) already exists.',
+      );
+    }
+
+    // Create the SupermarketProduct
     try {
       return await this.prisma.supermarketProduct.create({ data });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new ConflictException(
+            'A SupermarketProduct with this combination already exists.',
+          );
+        }
         if (error.code === 'P2025') {
           throw new NotFoundException('Supermarket or BrandProduct not found.');
         }

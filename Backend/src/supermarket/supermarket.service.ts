@@ -19,7 +19,6 @@ export class SupermarketService {
           franchise: true,
           supermarketProducts: {
             include: {
-              product: true,
               brandProduct: {
                 include: {
                   brand: true,

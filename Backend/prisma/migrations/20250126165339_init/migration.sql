@@ -183,7 +183,13 @@ CREATE UNIQUE INDEX "Product_name_key" ON "Product"("name");
 CREATE INDEX "Product_category_idx" ON "Product"("category");
 
 -- CreateIndex
+CREATE INDEX "Product_name_idx" ON "Product"("name");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Brand_name_key" ON "Brand"("name");
+
+-- CreateIndex
+CREATE INDEX "Brand_name_idx" ON "Brand"("name");
 
 -- CreateIndex
 CREATE INDEX "BrandProduct_brandId_idx" ON "BrandProduct"("brandId");
@@ -213,7 +219,7 @@ CREATE INDEX "SupermarketProduct_price_idx" ON "SupermarketProduct"("price");
 CREATE INDEX "SupermarketProduct_inStock_idx" ON "SupermarketProduct"("inStock");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "SupermarketProduct_supermarketId_brandProductId_key" ON "SupermarketProduct"("supermarketId", "brandProductId");
+CREATE UNIQUE INDEX "SupermarketProduct_supermarketId_brandProductId_unit_key" ON "SupermarketProduct"("supermarketId", "brandProductId", "unit");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Franchise_name_key" ON "Franchise"("name");

@@ -44,98 +44,15 @@ export class SupermarketProductController {
   @Post()
   @Roles(Role.ADMIN, Role.MERCHANT, Role.VERIFIED)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiSecurity('admin')
-  @ApiSecurity('merchant')
-  @ApiSecurity('verified')
   @ApiOperation({ summary: 'Create a new SupermarketProduct' })
-  @ApiBody({
-    type: CreateSupermarketProductDto,
-    description: 'Data required to create a new SupermarketProduct',
-    examples: {
-      brandedProduct: {
-        summary: 'Branded Product in Supermarket',
-        value: {
-          supermarketId: '2e7cba03-786f-4c2a-884f-1aa3ca717b65',
-          brandProductId: '8b2d3c4d-5678-90ef-ab12-34567890cdef',
-          price: 5.99,
-          unit: 'kg', // Optional field
-        },
-      },
-      unbrandedProduct: {
-        summary: 'Unbranded Product in Supermarket',
-        value: {
-          supermarketId: '2e7cba03-786f-4c2a-884f-1aa3ca717b65',
-          brandProductId: '8b2d3c4d-5678-90ef-ab12-34567890cdef',
-          price: 3.49,
-          // unit is omitted, as it can be inferred from the product
-        },
-      },
-    },
-  })
+  @ApiBody({ type: CreateSupermarketProductDto })
   @ApiResponse({
     status: 201,
-    description: 'The SupermarketProduct has been successfully created.',
-    schema: {
-      example: {
-        id: '7b2d3c4d-5678-90ef-ab12-34567890aaaa',
-        supermarketId: '2e7cba03-786f-4c2a-884f-1aa3ca717b65',
-        brandProductId: '8b2d3c4d-5678-90ef-ab12-34567890cdef',
-        price: 5.99,
-        unit: 'kg', // Inferred from the product if not provided
-        inStock: true, // Defaults to true
-        createdAt: '2025-01-20T12:00:00.000Z',
-        updatedAt: '2025-01-20T12:00:00.000Z',
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Invalid input data.',
-    schema: {
-      example: {
-        statusCode: 400,
-        message: [
-          'supermarketId must be a UUID',
-          'price must be a positive number',
-        ],
-        error: 'Bad Request',
-      },
-    },
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Not Found - Supermarket or BrandProduct not found.',
-    schema: {
-      example: {
-        statusCode: 404,
-        message:
-          'BrandProduct with ID 8b2d3c4d-5678-90ef-ab12-34567890cdef not found.',
-        error: 'Not Found',
-      },
-    },
+    description: 'SupermarketProduct created successfully.',
   })
   @ApiResponse({
     status: 409,
-    description:
-      'Conflict - A SupermarketProduct with this combination already exists.',
-    schema: {
-      example: {
-        statusCode: 409,
-        message: 'A SupermarketProduct with this combination already exists.',
-        error: 'Conflict',
-      },
-    },
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal Server Error - An unexpected error occurred.',
-    schema: {
-      example: {
-        statusCode: 500,
-        message: 'An unexpected error occurred.',
-        error: 'Internal Server Error',
-      },
-    },
+    description: 'A SupermarketProduct with this combination already exists.',
   })
   @UsePipes(ValidationPipe)
   async create(
@@ -158,24 +75,12 @@ export class SupermarketProductController {
       );
     }
 
-    // Check if the combination already exists
-    const existingEntry =
-      await this.supermarketProductService.findBySupermarketAndBrandProduct(
-        supermarketId,
-        brandProductId,
-      );
-    if (existingEntry) {
-      throw new ConflictException(
-        'A SupermarketProduct with this combination already exists.',
-      );
-    }
-
     // Create the SupermarketProduct
     const data: Prisma.SupermarketProductCreateInput = {
       supermarket: { connect: { id: supermarketId } },
       brandProduct: { connect: { id: brandProductId } },
       price,
-      ...(unit && { unit }), // Use the provided unit or default to the product's unit
+      unit,
       inStock: true, // Default to true
     };
 
@@ -194,8 +99,10 @@ export class SupermarketProductController {
       return supermarketProduct;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') {
-          throw new NotFoundException('Supermarket or BrandProduct not found.');
+        if (error.code === 'P2002') {
+          throw new ConflictException(
+            'A SupermarketProduct with this combination already exists.',
+          );
         }
       }
       throw new BadRequestException('An unexpected error occurred.');

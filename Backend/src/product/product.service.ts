@@ -43,7 +43,6 @@ export class ProductService {
           'Invalid data provided for product creation',
         );
       }
-      // For unexpected errors
       throw new InternalServerErrorException(
         'An unexpected error occurred while creating the product',
       );

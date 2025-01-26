@@ -113,14 +113,17 @@ async function main() {
     {
       id: uuidv4(), // Generated UUID for Nestle
       name: 'Nestle',
+      logo: 'https://example.com/nestle-logo.png',
     },
     {
       id: uuidv4(), // Generated UUID for Mavesa
       name: 'Mavesa',
+      logo: 'https://example.com/mavesa-logo.png',
     },
     {
       id: uuidv4(), // Generated UUID for Heinz
       name: 'Heinz',
+      logo: 'https://example.com/heinz-logo.png',
     },
   ];
 
@@ -202,7 +205,15 @@ async function main() {
       address: '123 Main Street, Caracas',
       latitude: 10.5,
       longitude: -66.9167,
-      openingHours: {}, // Add openingHours (required field)
+      openingHours: {
+        monday: { open: '08:00', close: '22:00' },
+        tuesday: { open: '08:00', close: '22:00' },
+        wednesday: { open: '08:00', close: '22:00' },
+        thursday: { open: '08:00', close: '22:00' },
+        friday: { open: '08:00', close: '22:00' },
+        saturday: { open: '09:00', close: '21:00' },
+        sunday: { open: '10:00', close: '20:00' },
+      },
     },
     {
       id: uuidv4(), // Generated UUID for Aikoz
@@ -211,7 +222,15 @@ async function main() {
       address: '456 Downtown Avenue, Maracaibo',
       latitude: 10.6333,
       longitude: -71.6333,
-      openingHours: {}, // Add openingHours (required field)
+      openingHours: {
+        monday: { open: '08:00', close: '22:00' },
+        tuesday: { open: '08:00', close: '22:00' },
+        wednesday: { open: '08:00', close: '22:00' },
+        thursday: { open: '08:00', close: '22:00' },
+        friday: { open: '08:00', close: '22:00' },
+        saturday: { open: '09:00', close: '21:00' },
+        sunday: { open: '10:00', close: '20:00' },
+      },
     },
   ];
 
@@ -227,7 +246,7 @@ async function main() {
       id: uuidv4(),
       supermarketId: supermarkets[0].id, // Mas por Menos
       brandProductId: brandProducts[0].id, // Nestle Flour
-      unit: '1kg',
+      unit: '1 kg',
       price: 5.99,
       inStock: true,
     },
@@ -235,15 +254,23 @@ async function main() {
       id: uuidv4(),
       supermarketId: supermarkets[0].id, // Mas por Menos
       brandProductId: brandProducts[1].id, // Mavesa Corn Oil
+      unit: '500ml',
+      price: 2.99,
+      inStock: true,
+    },
+    {
+      id: uuidv4(),
+      supermarketId: supermarkets[0].id, // Mas por Menos
+      brandProductId: brandProducts[1].id, // Mavesa Corn Oil
       unit: '1 liter',
-      price: 3.99,
+      price: 5.99,
       inStock: true,
     },
     {
       id: uuidv4(),
       supermarketId: supermarkets[1].id, // Aikoz
       brandProductId: brandProducts[2].id, // Heinz White Granulated Sugar
-      unit: '1kg',
+      unit: '1 kg',
       price: 2.99,
       inStock: true,
     },
@@ -253,7 +280,7 @@ async function main() {
       brandProductId: brandProducts[3].id, // Unbranded Tomatoes
       unit: '1 kg',
       price: 1.99,
-      inStock: true,
+      inStock: false, // Out of stock
     },
   ];
 
@@ -263,9 +290,6 @@ async function main() {
     });
   }
 
-  console.log('🌱🌱🌱 Database has been seeded. 🌱🌱🌱');
-  console.log('🌱🌱🌱 Database has been seeded. 🌱🌱🌱');
-  console.log('🌱🌱🌱 Database has been seeded. 🌱🌱🌱');
   console.log('🌱🌱🌱 Database has been seeded. 🌱🌱🌱');
 }
 

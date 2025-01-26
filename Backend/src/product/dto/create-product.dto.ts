@@ -6,6 +6,7 @@ import {
   IsArray,
   IsBoolean,
   IsOptional,
+  ArrayMinSize,
 } from 'class-validator';
 
 export class CreateProductDto {
@@ -38,6 +39,7 @@ export class CreateProductDto {
     description: 'The units in which the product is sold',
   })
   @IsArray()
+  @ArrayMinSize(1, { message: 'At least one unit must be provided.' }) // Add this line
   @IsString({ each: true })
   units: string[];
 

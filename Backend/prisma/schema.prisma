@@ -153,8 +153,8 @@ model SupermarketProduct {
   updatedAt      DateTime              @updatedAt
   contributions  ProductContribution[]
 
-  // Unique constraint to ensure no duplicate supermarket-brandProduct pairs
-  @@unique([supermarketId, brandProductId])
+  // Add unique constraint on supermarketId, brandProductId, and unit
+  @@unique([supermarketId, brandProductId, unit])
   // Add indexes for frequently queried fields
   @@index([supermarketId])
   @@index([brandProductId])

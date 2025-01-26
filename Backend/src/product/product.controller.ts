@@ -60,6 +60,24 @@ export class ProductController {
           isTypicallyBranded: true,
         },
       },
+      productWithoutDescription: {
+        summary: 'Product Without Description',
+        value: {
+          name: 'Organic Eggs',
+          category: ProductCategory.DAIRY,
+          units: ['dozen'],
+          isTypicallyBranded: false,
+        },
+      },
+      productWithSingleUnit: {
+        summary: 'Product With Single Unit',
+        value: {
+          name: 'Organic Apples',
+          category: ProductCategory.PRODUCE,
+          units: ['kg'],
+          isTypicallyBranded: false,
+        },
+      },
     },
   })
   @ApiResponse({
@@ -87,8 +105,30 @@ export class ProductController {
         message: [
           'name must be a string',
           'category must be a valid enum value',
+          'At least one unit must be provided.', // Add this
         ],
         error: 'Bad Request',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - User is not authenticated.',
+    schema: {
+      example: {
+        statusCode: 401,
+        message: 'Unauthorized',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - User does not have the required role.',
+    schema: {
+      example: {
+        statusCode: 403,
+        message: 'Forbidden resource',
+        error: 'Forbidden',
       },
     },
   })
@@ -100,6 +140,17 @@ export class ProductController {
         statusCode: 409,
         message: 'A product with the name "Organic Whole Milk" already exists',
         error: 'Conflict',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal Server Error - An unexpected error occurred.',
+    schema: {
+      example: {
+        statusCode: 500,
+        message: 'An unexpected error occurred while creating the product',
+        error: 'Internal Server Error',
       },
     },
   })
