@@ -44,9 +44,12 @@ export class AuthService {
   async login(user: any) {
     const payload = { email: user.email, sub: user.id, role: user.role };
     const token = this.jwtService.sign(payload);
+
+    // Store the token in Redis with the userId as the key
     await this.redisClient.set(`token:${user.id}`, token, {
       EX: 3600, // Token expires in 1 hour
     });
+
     return {
       access_token: token,
     };

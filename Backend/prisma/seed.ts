@@ -192,6 +192,34 @@ async function main() {
     });
   }
 
+  // Supermarkets
+  const supermarkets = [
+    {
+      id: '77777777-7777-7777-7777-777777777777', // Mas por Menos
+      name: 'Mas por Menos - Main Branch',
+      city: 'Caracas',
+      address: '123 Main Street, Caracas',
+      latitude: 10.5,
+      longitude: -66.9167,
+      openingHours: {}, // Add openingHours (required field)
+    },
+    {
+      id: '88888888-8888-8888-8888-888888888888', // Aikoz
+      name: 'Aikoz - Downtown Branch',
+      city: 'Maracaibo',
+      address: '456 Downtown Avenue, Maracaibo',
+      latitude: 10.6333,
+      longitude: -71.6333,
+      openingHours: {}, // Add openingHours (required field)
+    },
+  ];
+
+  for (const supermarket of supermarkets) {
+    await prisma.supermarket.create({
+      data: supermarket,
+    });
+  }
+
   console.log('🌱🌱🌱 Database has been seeded. 🌱🌱🌱');
   console.log('🌱🌱🌱 Database has been seeded. 🌱🌱🌱');
   console.log('🌱🌱🌱 Database has been seeded. 🌱🌱🌱');

@@ -24,10 +24,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
+    // Check if the token exists in Redis
     const token = await this.redisClient.get(`token:${payload.sub}`);
     if (!token) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('Invalid or expired token');
     }
-    return { id: payload.sub, email: payload.email, role: payload.role };
+
+    // Return the user object with userId
+    return { userId: payload.sub, email: payload.email, role: payload.role };
   }
 }
