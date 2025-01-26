@@ -112,21 +112,52 @@ export class SupermarketProductService {
       skip: (page - 1) * limit,
       take: limit,
       include: {
-        supermarket: true,
-        product: true,
+        supermarket: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+            address: true,
+            latitude: true,
+            longitude: true,
+          },
+        },
+        product: {
+          select: {
+            name: true,
+            category: true,
+          },
+        },
         brandProduct: {
-          include: {
-            brand: true,
+          select: {
+            brand: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
       },
     });
 
+    // Simplify the response
+    const simplifiedResults = results.map((result) => ({
+      id: result.id,
+      name: result.brandProduct
+        ? `${result.brandProduct.brand.name} ${result.product.name}` // Combine brand + product name
+        : result.product.name, // Fallback to product name if no brand
+      price: result.price,
+      unit: result.unit,
+      inStock: result.inStock,
+      category: result.product.category,
+      supermarket: result.supermarket,
+    }));
+
     // Fetch total count for pagination metadata
     const total = await this.prisma.supermarketProduct.count({ where });
 
     return {
-      data: results,
+      data: simplifiedResults,
       meta: {
         total,
         page,

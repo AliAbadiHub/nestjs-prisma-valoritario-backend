@@ -46,14 +46,21 @@ export class GetSupermarketProductDto {
 
   @IsOptional()
   @IsNumber()
+  @Transform(({ value }) => parseFloat(value))
   minPrice?: number;
 
   @IsOptional()
   @IsNumber()
+  @Transform(({ value }) => parseFloat(value))
   maxPrice?: number;
 
   @IsOptional()
   @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   inStock?: boolean;
 
   @IsOptional()

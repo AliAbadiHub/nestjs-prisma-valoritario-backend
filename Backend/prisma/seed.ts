@@ -1,5 +1,6 @@
 import { PrismaClient, ProductCategory, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid'; // Import UUID generator
 
 const prisma = new PrismaClient();
 
@@ -7,25 +8,25 @@ async function main() {
   // Users
   const users = [
     {
-      id: '11111111-1111-1111-1111-111111111111', // Hardcoded UUID for Basic user
+      id: uuidv4(), // Generated UUID for Basic user
       email: 'basic@email.com',
       password: 'basic',
       role: Role.BASIC,
     },
     {
-      id: '22222222-2222-2222-2222-222222222222', // Hardcoded UUID for Verified user
+      id: uuidv4(), // Generated UUID for Verified user
       email: 'verified@email.com',
       password: 'verified',
       role: Role.VERIFIED,
     },
     {
-      id: '33333333-3333-3333-3333-333333333333', // Hardcoded UUID for Merchant user
+      id: uuidv4(), // Generated UUID for Merchant user
       email: 'merchant@email.com',
       password: 'merchant',
       role: Role.MERCHANT,
     },
     {
-      id: '44444444-4444-4444-4444-444444444444', // Hardcoded UUID for Admin user
+      id: uuidv4(), // Generated UUID for Admin user
       email: 'admin@email.com',
       password: 'admin',
       role: Role.ADMIN,
@@ -47,7 +48,7 @@ async function main() {
   // Products
   const products = [
     {
-      id: '55555555-5555-5555-5555-555555555555', // Tomatoes
+      id: uuidv4(), // Generated UUID for Tomatoes
       name: 'Tomatoes',
       description: 'Fresh tomatoes',
       category: ProductCategory.PRODUCE,
@@ -55,7 +56,7 @@ async function main() {
       isTypicallyBranded: false,
     },
     {
-      id: '66666666-6666-6666-6666-666666666666', // Chicken Breasts
+      id: uuidv4(), // Generated UUID for Chicken Breasts
       name: 'Chicken Breasts',
       description: 'Boneless chicken breasts',
       category: ProductCategory.BUTCHER,
@@ -63,7 +64,7 @@ async function main() {
       isTypicallyBranded: false,
     },
     {
-      id: '77777777-7777-7777-7777-777777777777', // Beef Tenderloin
+      id: uuidv4(), // Generated UUID for Beef Tenderloin
       name: 'Beef Tenderloin',
       description: 'Premium beef tenderloin',
       category: ProductCategory.BUTCHER,
@@ -71,7 +72,7 @@ async function main() {
       isTypicallyBranded: false,
     },
     {
-      id: '88888888-8888-8888-8888-888888888888', // Flour
+      id: uuidv4(), // Generated UUID for Flour
       name: 'Flour',
       description: 'All-purpose flour',
       category: ProductCategory.GROCERY,
@@ -79,7 +80,7 @@ async function main() {
       isTypicallyBranded: true,
     },
     {
-      id: '99999999-9999-9999-9999-999999999999', // White Granulated Sugar
+      id: uuidv4(), // Generated UUID for White Granulated Sugar
       name: 'White Granulated Sugar',
       description: 'Fine white sugar',
       category: ProductCategory.GROCERY,
@@ -87,7 +88,7 @@ async function main() {
       isTypicallyBranded: true,
     },
     {
-      id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', // Corn Oil
+      id: uuidv4(), // Generated UUID for Corn Oil
       name: 'Corn Oil',
       description: 'Refined corn oil',
       category: ProductCategory.GROCERY,
@@ -110,15 +111,15 @@ async function main() {
       logo: null,
     },
     {
-      id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', // Nestle
+      id: uuidv4(), // Generated UUID for Nestle
       name: 'Nestle',
     },
     {
-      id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', // Mavesa
+      id: uuidv4(), // Generated UUID for Mavesa
       name: 'Mavesa',
     },
     {
-      id: 'dddddddd-dddd-dddd-dddd-dddddddddddd', // Heinz
+      id: uuidv4(), // Generated UUID for Heinz
       name: 'Heinz',
     },
   ];
@@ -132,12 +133,12 @@ async function main() {
   // Franchises
   const franchises = [
     {
-      id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', // Mas por Menos
+      id: uuidv4(), // Generated UUID for Mas por Menos
       name: 'Mas por Menos',
       logo: 'https://example.com/maspormenos-logo.png',
     },
     {
-      id: 'ffffffff-ffff-ffff-ffff-ffffffffffff', // Aikoz
+      id: uuidv4(), // Generated UUID for Aikoz
       name: 'Aikoz',
       logo: 'https://example.com/aikoz-logo.png',
     },
@@ -153,36 +154,36 @@ async function main() {
   const brandProducts = [
     // Branded products
     {
-      id: '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-      brandId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', // Nestle
-      productId: '88888888-8888-8888-8888-888888888888', // Flour
+      id: uuidv4(),
+      brandId: brands[1].id, // Nestle
+      productId: products[3].id, // Flour
     },
     {
-      id: '22222222-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-      brandId: 'cccccccc-cccc-cccc-cccc-cccccccccccc', // Mavesa
-      productId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', // Corn Oil
+      id: uuidv4(),
+      brandId: brands[2].id, // Mavesa
+      productId: products[5].id, // Corn Oil
     },
     {
-      id: '33333333-cccc-cccc-cccc-cccccccccccc',
-      brandId: 'dddddddd-dddd-dddd-dddd-dddddddddddd', // Heinz
-      productId: '99999999-9999-9999-9999-999999999999', // White Granulated Sugar
+      id: uuidv4(),
+      brandId: brands[3].id, // Heinz
+      productId: products[4].id, // White Granulated Sugar
     },
 
     // Unbranded products
     {
-      id: '44444444-dddd-dddd-dddd-dddddddddddd',
-      brandId: '00000000-0000-0000-0000-UNBRANDED00', // Unbranded
-      productId: '55555555-5555-5555-5555-555555555555', // Tomatoes
+      id: uuidv4(),
+      brandId: brands[0].id, // Unbranded
+      productId: products[0].id, // Tomatoes
     },
     {
-      id: '55555555-eeee-eeee-eeee-eeeeeeeeeeee',
-      brandId: '00000000-0000-0000-0000-UNBRANDED00', // Unbranded
-      productId: '66666666-6666-6666-6666-666666666666', // Chicken Breasts
+      id: uuidv4(),
+      brandId: brands[0].id, // Unbranded
+      productId: products[1].id, // Chicken Breasts
     },
     {
-      id: '66666666-ffff-ffff-ffff-ffffffffffff',
-      brandId: '00000000-0000-0000-0000-UNBRANDED00', // Unbranded
-      productId: '77777777-7777-7777-7777-777777777777', // Beef Tenderloin
+      id: uuidv4(),
+      brandId: brands[0].id, // Unbranded
+      productId: products[2].id, // Beef Tenderloin
     },
   ];
 
@@ -195,7 +196,7 @@ async function main() {
   // Supermarkets
   const supermarkets = [
     {
-      id: '77777777-7777-7777-7777-777777777777', // Mas por Menos
+      id: uuidv4(), // Generated UUID for Mas por Menos
       name: 'Mas por Menos - Main Branch',
       city: 'Caracas',
       address: '123 Main Street, Caracas',
@@ -204,7 +205,7 @@ async function main() {
       openingHours: {}, // Add openingHours (required field)
     },
     {
-      id: '88888888-8888-8888-8888-888888888888', // Aikoz
+      id: uuidv4(), // Generated UUID for Aikoz
       name: 'Aikoz - Downtown Branch',
       city: 'Maracaibo',
       address: '456 Downtown Avenue, Maracaibo',
