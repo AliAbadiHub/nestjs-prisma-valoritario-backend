@@ -98,8 +98,7 @@ CREATE TABLE "Supermarket" (
 CREATE TABLE "SupermarketProduct" (
     "id" TEXT NOT NULL,
     "supermarketId" TEXT NOT NULL,
-    "productId" TEXT NOT NULL,
-    "brandProductId" TEXT,
+    "brandProductId" TEXT NOT NULL,
     "unit" TEXT NOT NULL,
     "price" DOUBLE PRECISION NOT NULL,
     "inStock" BOOLEAN NOT NULL DEFAULT true,
@@ -181,16 +180,40 @@ CREATE UNIQUE INDEX "Profile_userId_key" ON "Profile"("userId");
 CREATE UNIQUE INDEX "Product_name_key" ON "Product"("name");
 
 -- CreateIndex
+CREATE INDEX "Product_category_idx" ON "Product"("category");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Brand_name_key" ON "Brand"("name");
+
+-- CreateIndex
+CREATE INDEX "BrandProduct_brandId_idx" ON "BrandProduct"("brandId");
+
+-- CreateIndex
+CREATE INDEX "BrandProduct_productId_idx" ON "BrandProduct"("productId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "BrandProduct_brandId_productId_key" ON "BrandProduct"("brandId", "productId");
 
 -- CreateIndex
+CREATE INDEX "Supermarket_city_idx" ON "Supermarket"("city");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Supermarket_name_address_key" ON "Supermarket"("name", "address");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "SupermarketProduct_supermarketId_productId_brandProductId_key" ON "SupermarketProduct"("supermarketId", "productId", "brandProductId");
+CREATE INDEX "SupermarketProduct_supermarketId_idx" ON "SupermarketProduct"("supermarketId");
+
+-- CreateIndex
+CREATE INDEX "SupermarketProduct_brandProductId_idx" ON "SupermarketProduct"("brandProductId");
+
+-- CreateIndex
+CREATE INDEX "SupermarketProduct_price_idx" ON "SupermarketProduct"("price");
+
+-- CreateIndex
+CREATE INDEX "SupermarketProduct_inStock_idx" ON "SupermarketProduct"("inStock");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SupermarketProduct_supermarketId_brandProductId_key" ON "SupermarketProduct"("supermarketId", "brandProductId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Franchise_name_key" ON "Franchise"("name");
@@ -220,10 +243,7 @@ ALTER TABLE "Supermarket" ADD CONSTRAINT "Supermarket_franchiseId_fkey" FOREIGN 
 ALTER TABLE "SupermarketProduct" ADD CONSTRAINT "SupermarketProduct_supermarketId_fkey" FOREIGN KEY ("supermarketId") REFERENCES "Supermarket"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "SupermarketProduct" ADD CONSTRAINT "SupermarketProduct_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "SupermarketProduct" ADD CONSTRAINT "SupermarketProduct_brandProductId_fkey" FOREIGN KEY ("brandProductId") REFERENCES "BrandProduct"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "SupermarketProduct" ADD CONSTRAINT "SupermarketProduct_brandProductId_fkey" FOREIGN KEY ("brandProductId") REFERENCES "BrandProduct"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ShoppingList" ADD CONSTRAINT "ShoppingList_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

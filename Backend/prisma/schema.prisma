@@ -71,17 +71,21 @@ model Profile {
 }
 
 model Product {
-  id                  String               @id @default(uuid())
-  name                String               @unique
-  description         String?
-  category            ProductCategory
-  units               String[]
-  isTypicallyBranded  Boolean              @default(false)
-  brandProducts       BrandProduct[]
-  supermarketProducts SupermarketProduct[]
-  shoppingListItems   ShoppingListItem[]
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  id                 String             @id @default(uuid())
+  name               String             @unique
+  description        String?
+  category           ProductCategory
+  units              String[] // Units of measurement (e.g., ['ml', 'liter'])
+  isTypicallyBranded Boolean            @default(false)
+  brandProducts      BrandProduct[]
+  shoppingListItems  ShoppingListItem[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  // Add index for category
+  @@index([category])
+  // Add index for product name to optimize search by product name
+  @@index([name])
 }
 
 model Brand {
@@ -91,6 +95,9 @@ model Brand {
   brandProducts BrandProduct[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+
+  // Add index for brand name to optimize search by brand name
+  @@index([name])
 }
 
 model BrandProduct {
@@ -104,7 +111,11 @@ model BrandProduct {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
+  // Unique constraint to ensure no duplicate brand-product pairs
   @@unique([brandId, productId])
+  // Add index for brandId and productId
+  @@index([brandId])
+  @@index([productId])
 }
 
 model Supermarket {
@@ -123,25 +134,32 @@ model Supermarket {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
+  // Unique constraint to ensure no duplicate supermarket names at the same address
   @@unique([name, address])
+  // Add index for city
+  @@index([city])
 }
 
 model SupermarketProduct {
   id             String                @id @default(uuid())
   supermarket    Supermarket           @relation(fields: [supermarketId], references: [id])
   supermarketId  String
-  product        Product               @relation(fields: [productId], references: [id])
-  productId      String
-  brandProduct   BrandProduct?         @relation(fields: [brandProductId], references: [id])
-  brandProductId String?
-  unit           String
+  brandProduct   BrandProduct          @relation(fields: [brandProductId], references: [id])
+  brandProductId String
+  unit           String // Size of the item on the shelf (e.g., "500ml", "1kg")
   price          Float
   inStock        Boolean               @default(true)
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
   contributions  ProductContribution[]
 
-  @@unique([supermarketId, productId, brandProductId])
+  // Unique constraint to ensure no duplicate supermarket-brandProduct pairs
+  @@unique([supermarketId, brandProductId])
+  // Add indexes for frequently queried fields
+  @@index([supermarketId])
+  @@index([brandProductId])
+  @@index([price])
+  @@index([inStock])
 }
 
 model Franchise {

@@ -92,7 +92,7 @@ async function main() {
       name: 'Corn Oil',
       description: 'Refined corn oil',
       category: ProductCategory.GROCERY,
-      units: ['liter'],
+      units: ['liter', 'ml'],
       isTypicallyBranded: true,
     },
   ];
@@ -218,6 +218,48 @@ async function main() {
   for (const supermarket of supermarkets) {
     await prisma.supermarket.create({
       data: supermarket,
+    });
+  }
+
+  // SupermarketProducts
+  const supermarketProducts = [
+    {
+      id: uuidv4(),
+      supermarketId: supermarkets[0].id, // Mas por Menos
+      brandProductId: brandProducts[0].id, // Nestle Flour
+      unit: '1kg',
+      price: 5.99,
+      inStock: true,
+    },
+    {
+      id: uuidv4(),
+      supermarketId: supermarkets[0].id, // Mas por Menos
+      brandProductId: brandProducts[1].id, // Mavesa Corn Oil
+      unit: '1 liter',
+      price: 3.99,
+      inStock: true,
+    },
+    {
+      id: uuidv4(),
+      supermarketId: supermarkets[1].id, // Aikoz
+      brandProductId: brandProducts[2].id, // Heinz White Granulated Sugar
+      unit: '1kg',
+      price: 2.99,
+      inStock: true,
+    },
+    {
+      id: uuidv4(),
+      supermarketId: supermarkets[1].id, // Aikoz
+      brandProductId: brandProducts[3].id, // Unbranded Tomatoes
+      unit: '1 kg',
+      price: 1.99,
+      inStock: true,
+    },
+  ];
+
+  for (const supermarketProduct of supermarketProducts) {
+    await prisma.supermarketProduct.create({
+      data: supermarketProduct,
     });
   }
 

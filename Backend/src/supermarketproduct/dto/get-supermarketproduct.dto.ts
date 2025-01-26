@@ -4,6 +4,7 @@ import {
   IsArray,
   IsNumber,
   IsBoolean,
+  IsIn,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 
@@ -26,14 +27,6 @@ export class GetSupermarketProductDto {
   @Transform(({ value }) =>
     typeof value === 'string' ? value.split(',') : value,
   )
-  productIds?: string[];
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.split(',') : value,
-  )
   brandProductIds?: string[];
 
   @IsOptional()
@@ -43,6 +36,14 @@ export class GetSupermarketProductDto {
     typeof value === 'string' ? value.split(',') : value,
   )
   brandIds?: string[];
+
+  @IsOptional()
+  @IsString()
+  productName?: string; // New field for searching by product name
+
+  @IsOptional()
+  @IsString()
+  brandName?: string; // New field for searching by brand name
 
   @IsOptional()
   @IsNumber()
@@ -65,19 +66,21 @@ export class GetSupermarketProductDto {
 
   @IsOptional()
   @IsString()
+  @IsIn(['price', 'createdAt', 'updatedAt'])
   sortBy?: string;
 
   @IsOptional()
   @IsString()
+  @IsIn(['asc', 'desc'])
   sortOrder?: 'asc' | 'desc';
 
   @IsOptional()
   @IsNumber()
   @Transform(({ value }) => parseInt(value, 10))
-  page?: number;
+  page: number = 1;
 
   @IsOptional()
   @IsNumber()
   @Transform(({ value }) => parseInt(value, 10))
-  limit?: number;
+  limit: number = 10;
 }

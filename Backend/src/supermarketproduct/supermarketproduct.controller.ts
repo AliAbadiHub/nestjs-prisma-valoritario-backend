@@ -28,9 +28,9 @@ import { Roles } from '../auth/roles.decorators';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/role.guard';
 import { CreateSupermarketProductDto } from './dto/create-supermarketproduct.dto';
-import { SupermarketProductService } from './supermarketproduct.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { GetSupermarketProductDto } from './dto/get-supermarketproduct.dto';
+import { SupermarketProductService } from './supermarketproduct.service';
 
 @Controller('supermarketproduct')
 @ApiTags('supermarketproducts')
@@ -79,7 +79,6 @@ export class SupermarketProductController {
       example: {
         id: '7b2d3c4d-5678-90ef-ab12-34567890aaaa',
         supermarketId: '2e7cba03-786f-4c2a-884f-1aa3ca717b65',
-        productId: '9d4cc102-7bc8-4d60-a539-0dc98ca9323b', // Inferred from brandProductId
         brandProductId: '8b2d3c4d-5678-90ef-ab12-34567890cdef',
         price: 5.99,
         unit: 'kg', // Inferred from the product if not provided
@@ -148,10 +147,9 @@ export class SupermarketProductController {
     const { supermarketId, brandProductId, price, unit } =
       createSupermarketProductDto;
 
-    // Fetch the brandProduct to get the productId
+    // Fetch the brandProduct to ensure it exists
     const brandProduct = await this.prisma.brandProduct.findUnique({
       where: { id: brandProductId },
-      select: { productId: true },
     });
 
     if (!brandProduct) {
@@ -160,13 +158,10 @@ export class SupermarketProductController {
       );
     }
 
-    const productId = brandProduct.productId;
-
     // Check if the combination already exists
     const existingEntry =
-      await this.supermarketProductService.findBySupermarketAndProduct(
+      await this.supermarketProductService.findBySupermarketAndBrandProduct(
         supermarketId,
-        productId,
         brandProductId,
       );
     if (existingEntry) {
@@ -178,7 +173,6 @@ export class SupermarketProductController {
     // Create the SupermarketProduct
     const data: Prisma.SupermarketProductCreateInput = {
       supermarket: { connect: { id: supermarketId } },
-      product: { connect: { id: productId } },
       brandProduct: { connect: { id: brandProductId } },
       price,
       ...(unit && { unit }), // Use the provided unit or default to the product's unit
@@ -230,14 +224,6 @@ export class SupermarketProductController {
     description: 'Filter by specific supermarket IDs (comma-separated).',
     example:
       '2e7cba03-786f-4c2a-884f-1aa3ca717b65,88888888-8888-8888-8888-888888888888',
-  })
-  @ApiQuery({
-    name: 'productIds',
-    required: false,
-    type: String,
-    description: 'Filter by specific product IDs (comma-separated).',
-    example:
-      '55555555-5555-5555-5555-555555555555,66666666-6666-6666-6666-666666666666',
   })
   @ApiQuery({
     name: 'brandProductIds',
@@ -315,7 +301,6 @@ export class SupermarketProductController {
           {
             id: '7b2d3c4d-5678-90ef-ab12-34567890aaaa',
             supermarketId: '2e7cba03-786f-4c2a-884f-1aa3ca717b65',
-            productId: '55555555-5555-5555-5555-555555555555',
             brandProductId: '8b2d3c4d-5678-90ef-ab12-34567890cdef',
             price: 5.99,
             unit: 'kg',
@@ -330,21 +315,20 @@ export class SupermarketProductController {
               latitude: 10.5,
               longitude: -66.9167,
             },
-            product: {
-              id: '55555555-5555-5555-5555-555555555555',
-              name: 'Tomatoes',
-              description: 'Fresh tomatoes',
-              category: 'PRODUCE',
-              units: ['kg'],
-              isTypicallyBranded: false,
-            },
             brandProduct: {
               id: '8b2d3c4d-5678-90ef-ab12-34567890cdef',
-              brandId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
               brand: {
                 id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
                 name: 'Nestle',
                 logo: null,
+              },
+              product: {
+                id: '55555555-5555-5555-5555-555555555555',
+                name: 'Tomatoes',
+                description: 'Fresh tomatoes',
+                category: 'PRODUCE',
+                units: ['kg'],
+                isTypicallyBranded: false,
               },
             },
           },
