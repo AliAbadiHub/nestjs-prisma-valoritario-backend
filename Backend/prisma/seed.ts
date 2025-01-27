@@ -57,8 +57,8 @@ async function main() {
     },
     {
       id: uuidv4(), // Generated UUID for Chicken Breasts
-      name: 'Chicken Breasts',
-      description: 'Boneless chicken breasts',
+      name: 'Chicken Breast',
+      description: 'Boneless skinless chicken breast',
       category: ProductCategory.BUTCHER,
       units: ['kg'],
       isTypicallyBranded: false,
@@ -181,7 +181,7 @@ async function main() {
     {
       id: uuidv4(),
       brandId: brands[0].id, // Unbranded
-      productId: products[1].id, // Chicken Breasts
+      productId: products[1].id, // Chicken Breast
     },
     {
       id: uuidv4(),
@@ -246,7 +246,7 @@ async function main() {
       id: uuidv4(),
       supermarketId: supermarkets[0].id, // Mas por Menos
       brandProductId: brandProducts[0].id, // Nestle Flour
-      unit: '1 kg',
+      unit: '1000 g',
       price: 5.99,
       inStock: true,
     },
@@ -262,7 +262,7 @@ async function main() {
       id: uuidv4(),
       supermarketId: supermarkets[0].id, // Mas por Menos
       brandProductId: brandProducts[1].id, // Mavesa Corn Oil
-      unit: '1 liter',
+      unit: '1000 ml',
       price: 5.99,
       inStock: true,
     },
@@ -270,7 +270,7 @@ async function main() {
       id: uuidv4(),
       supermarketId: supermarkets[1].id, // Aikoz
       brandProductId: brandProducts[2].id, // Heinz White Granulated Sugar
-      unit: '1 kg',
+      unit: '1000 g',
       price: 2.99,
       inStock: true,
     },
@@ -278,7 +278,7 @@ async function main() {
       id: uuidv4(),
       supermarketId: supermarkets[1].id, // Aikoz
       brandProductId: brandProducts[3].id, // Unbranded Tomatoes
-      unit: '1 kg',
+      unit: '1000 g',
       price: 1.99,
       inStock: false, // Out of stock
     },

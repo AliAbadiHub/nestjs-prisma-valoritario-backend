@@ -2,6 +2,7 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSupermarketProductDto } from './dto/create-supermarketproduct.dto';
 import { GetSupermarketProductDto } from './dto/get-supermarketproduct.dto';
+import { normalizeUnit } from 'src/utils';
 
 @Injectable()
 export class SupermarketProductService {
@@ -12,6 +13,8 @@ export class SupermarketProductService {
   ) {
     const { supermarketId, brandProductId, unit, price, inStock, userId } =
       data;
+
+    const normalizedUnit = normalizeUnit(unit);
 
     const supermarketExists = await this.prisma.supermarket.findUnique({
       where: { id: supermarketId },
@@ -33,7 +36,7 @@ export class SupermarketProductService {
           data: {
             supermarketId,
             brandProductId,
-            unit,
+            unit: normalizedUnit,
             price,
             inStock,
           },
@@ -54,6 +57,7 @@ export class SupermarketProductService {
         return createdProduct;
       });
     } catch (error) {
+      console.error('Error creating supermarket product:', error);
       if (error.code === 'P2002') {
         throw new HttpException(
           'A product with the same supermarket, brand product, and unit already exists.',
@@ -142,84 +146,75 @@ export class SupermarketProductService {
       limit = 10,
     } = query;
 
-    // Ensure valid pagination values
+    const normalizedUnit = unit ? normalizeUnit(unit) : undefined; // Normalize unit
     const skip = Math.max(0, (page - 1) * limit);
     const take = Math.max(1, limit);
 
     try {
-      // Fetch the results using Prisma
       const results = await this.prisma.supermarketProduct.findMany({
         where: {
-          // Mandatory filter: city
           supermarket: {
             city,
             ...(supermarketName && {
-              name: {
-                contains: supermarketName,
-                mode: 'insensitive',
-              },
+              name: { contains: supermarketName, mode: 'insensitive' },
             }),
           },
-          // Optional filter: productName (partial match)
           ...(productName && {
             brandProduct: {
-              product: {
-                name: {
-                  contains: productName,
-                  mode: 'insensitive',
-                },
-              },
+              product: { name: { contains: productName, mode: 'insensitive' } },
             },
           }),
-          // Optional filter: brandName (partial match)
           ...(brandName && {
             brandProduct: {
-              brand: {
-                name: {
-                  contains: brandName,
-                  mode: 'insensitive',
-                },
-              },
+              brand: { name: { contains: brandName, mode: 'insensitive' } },
             },
           }),
-          // Optional filter: unit
-          ...(unit && {
-            unit,
-          }),
-          // Optional filter: inStock
-          ...(typeof inStock === 'boolean' && {
-            inStock,
-          }),
+          ...(normalizedUnit && { unit: normalizedUnit }), // Use normalized unit here
+          ...(typeof inStock === 'boolean' && { inStock }),
         },
-        orderBy: {
-          price: 'asc', // Always sort by price in ascending order
-        },
-        skip, // Pagination: offset
-        take, // Pagination: limit
+        orderBy: { price: 'asc' },
+        skip,
+        take,
         include: {
-          supermarket: true, // Include related supermarket data
-          brandProduct: {
-            include: {
-              brand: true, // Include related brand data
-              product: true, // Include related product data
-            },
-          },
+          supermarket: true,
+          brandProduct: { include: { brand: true, product: true } },
         },
       });
 
-      // Transform the results into the desired response format
+      const totalItems = await this.prisma.supermarketProduct.count({
+        where: {
+          supermarket: {
+            city,
+            ...(supermarketName && {
+              name: { contains: supermarketName, mode: 'insensitive' },
+            }),
+          },
+          ...(productName && {
+            brandProduct: {
+              product: { name: { contains: productName, mode: 'insensitive' } },
+            },
+          }),
+          ...(brandName && {
+            brandProduct: {
+              brand: { name: { contains: brandName, mode: 'insensitive' } },
+            },
+          }),
+          ...(normalizedUnit && { unit: normalizedUnit }), // Normalize unit here too
+          ...(typeof inStock === 'boolean' && { inStock }),
+        },
+      });
+
       const formattedResults = results.map((item) => ({
         product: `${item.brandProduct.brand.name} ${item.brandProduct.product.name} ${item.unit}`,
         location: `${item.supermarket.name}, ${item.supermarket.city}`,
         price: `$${item.price.toFixed(2)}`,
       }));
 
-      // Return the transformed results along with pagination metadata
       return {
         data: formattedResults,
         meta: {
-          totalItems: results.length, // Replace this with actual count query if needed
-          totalPages: Math.ceil(results.length / limit),
+          totalItems,
+          totalPages: Math.ceil(totalItems / limit),
           currentPage: page,
           itemsPerPage: limit,
         },
@@ -227,7 +222,7 @@ export class SupermarketProductService {
     } catch (error) {
       console.error('Error in getSupermarketProducts:', error);
       throw new HttpException(
-        'An error occurred while retrieving supermarket products.',
+        'Failed to retrieve supermarket products.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

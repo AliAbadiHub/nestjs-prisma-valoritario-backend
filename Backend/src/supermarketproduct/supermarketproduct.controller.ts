@@ -306,14 +306,12 @@ export class SupermarketProductController {
     example: 10,
   })
   async getSupermarketProducts(@Query() query: GetSupermarketProductDto) {
+    const { data, meta } =
+      await this.supermarketProductService.getSupermarketProducts(query);
+
     return {
-      data: await this.supermarketProductService.getSupermarketProducts(query),
-      meta: {
-        totalItems: 100, // Replace with actual count
-        totalPages: 10, // Replace with actual calculation
-        currentPage: query.page ?? 1,
-        itemsPerPage: query.limit ?? 10,
-      },
+      data, // Array of results
+      meta, // Pagination metadata
     };
   }
 }
