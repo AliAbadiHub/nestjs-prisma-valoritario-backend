@@ -1,283 +1,235 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, ContributionType } from '@prisma/client';
+import { CreateSupermarketProductDto } from './dto/create-supermarketproduct.dto';
 import { GetSupermarketProductDto } from './dto/get-supermarketproduct.dto';
 
 @Injectable()
 export class SupermarketProductService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Create a new SupermarketProduct.
-   * @param data - The data to create a SupermarketProduct.
-   * @returns The created SupermarketProduct.
-   * @throws NotFoundException if the Supermarket or BrandProduct does not exist.
-   * @throws BadRequestException if an unexpected error occurs.
-   */
-  async createSupermarketProduct(data: Prisma.SupermarketProductCreateInput) {
-    // Extract supermarketId and brandProductId from the connect objects
-    const supermarketId = data.supermarket.connect?.id;
-    const brandProductId = data.brandProduct.connect?.id;
-    const unit = data.unit;
-
-    if (!supermarketId || !brandProductId) {
-      throw new BadRequestException(
-        'Supermarket or BrandProduct ID is missing.',
-      );
-    }
-
-    // Check if a SupermarketProduct with the same supermarketId, brandProductId, and unit already exists
-    const existingEntry = await this.prisma.supermarketProduct.findFirst({
-      where: {
-        supermarketId,
-        brandProductId,
-        unit,
-      },
-    });
-
-    if (existingEntry) {
-      throw new ConflictException(
-        'A SupermarketProduct with this combination (supermarket, brand product, and unit) already exists.',
-      );
-    }
-
-    // Create the SupermarketProduct
-    try {
-      return await this.prisma.supermarketProduct.create({ data });
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new ConflictException(
-            'A SupermarketProduct with this combination already exists.',
-          );
-        }
-        if (error.code === 'P2025') {
-          throw new NotFoundException('Supermarket or BrandProduct not found.');
-        }
-      }
-      throw new BadRequestException('An unexpected error occurred.');
-    }
-  }
-
-  /**
-   * Find a SupermarketProduct by Supermarket and BrandProduct.
-   * @param supermarketId - The ID of the Supermarket.
-   * @param brandProductId - The ID of the BrandProduct.
-   * @returns The matching SupermarketProduct, or null if not found.
-   */
-  async findBySupermarketAndBrandProduct(
-    supermarketId: string,
-    brandProductId: string,
+  async createSupermarketProduct(
+    data: CreateSupermarketProductDto & { userId: string },
   ) {
-    return this.prisma.supermarketProduct.findFirst({
-      where: {
-        supermarketId,
-        brandProductId,
-      },
-    });
-  }
+    const { supermarketId, brandProductId, unit, price, inStock, userId } =
+      data;
 
-  /**
-   * Log a contribution for a SupermarketProduct.
-   * @param supermarketProductId - The ID of the SupermarketProduct.
-   * @param price - The new price.
-   * @param type - The type of contribution (e.g., PRICE_UPDATE).
-   * @param userId - The ID of the user making the contribution.
-   * @returns The created ProductContribution.
-   * @throws NotFoundException if the SupermarketProduct or User does not exist.
-   * @throws BadRequestException if an unexpected error occurs.
-   */
-  async logContribution(
-    supermarketProductId: string,
-    price: number,
-    type: ContributionType,
-    userId: string,
-  ) {
+    const supermarketExists = await this.prisma.supermarket.findUnique({
+      where: { id: supermarketId },
+    });
+    if (!supermarketExists) {
+      throw new HttpException('Supermarket not found.', HttpStatus.NOT_FOUND);
+    }
+
+    const brandProductExists = await this.prisma.brandProduct.findUnique({
+      where: { id: brandProductId },
+    });
+    if (!brandProductExists) {
+      throw new HttpException('Brand Product not found.', HttpStatus.NOT_FOUND);
+    }
+
     try {
-      return await this.prisma.productContribution.create({
-        data: {
-          supermarketProduct: { connect: { id: supermarketProductId } },
-          user: { connect: { id: userId } },
-          newValue: { price },
-          type,
-        },
+      return await this.prisma.$transaction(async (prisma) => {
+        const createdProduct = await prisma.supermarketProduct.create({
+          data: {
+            supermarketId,
+            brandProductId,
+            unit,
+            price,
+            inStock,
+          },
+        });
+
+        await prisma.productContribution.create({
+          data: {
+            userId,
+            supermarketProductId: createdProduct.id,
+            type: 'NEW_PRODUCT',
+            newValue: {
+              price,
+              inStock,
+            },
+          },
+        });
+
+        return createdProduct;
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') {
-          throw new NotFoundException('SupermarketProduct or User not found.');
-        }
+      if (error.code === 'P2002') {
+        throw new HttpException(
+          'A product with the same supermarket, brand product, and unit already exists.',
+          HttpStatus.CONFLICT,
+        );
       }
-      throw new BadRequestException('An unexpected error occurred.');
+      throw new HttpException(
+        'Internal Server Error. Unable to create Supermarket Product.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
+  async updatePrice(
+    supermarketProductId: string,
+    newPrice: number,
+    userId: string,
+  ) {
+    const existingProduct = await this.prisma.supermarketProduct.findUnique({
+      where: { id: supermarketProductId },
+    });
 
-  /**
-   * Get a paginated list of SupermarketProducts with filters.
-   * @param query - The query parameters for filtering and pagination.
-   * @returns A paginated list of SupermarketProducts.
-   * @throws BadRequestException if the query parameters are invalid.
-   */
+    if (!existingProduct) {
+      throw new HttpException('Product not found.', HttpStatus.NOT_FOUND);
+    }
+
+    return await this.prisma.$transaction(async (prisma) => {
+      const updatedProduct = await prisma.supermarketProduct.update({
+        where: { id: supermarketProductId },
+        data: { price: newPrice },
+      });
+
+      await prisma.productContribution.create({
+        data: {
+          userId,
+          supermarketProductId,
+          type: 'PRICE_UPDATE',
+          oldValue: { price: existingProduct.price },
+          newValue: { price: newPrice },
+        },
+      });
+
+      return updatedProduct;
+    });
+  }
+  async updateStockStatus(
+    supermarketProductId: string,
+    inStock: boolean,
+    userId: string,
+  ) {
+    const existingProduct = await this.prisma.supermarketProduct.findUnique({
+      where: { id: supermarketProductId },
+    });
+
+    if (!existingProduct) {
+      throw new HttpException('Product not found.', HttpStatus.NOT_FOUND);
+    }
+
+    return await this.prisma.$transaction(async (prisma) => {
+      const updatedProduct = await prisma.supermarketProduct.update({
+        where: { id: supermarketProductId },
+        data: { inStock },
+      });
+
+      await prisma.productContribution.create({
+        data: {
+          userId,
+          supermarketProductId,
+          type: 'AVAILABILITY_UPDATE',
+          oldValue: { inStock: existingProduct.inStock },
+          newValue: { inStock },
+        },
+      });
+
+      return updatedProduct;
+    });
+  }
   async getSupermarketProducts(query: GetSupermarketProductDto) {
     const {
       city,
-      supermarketIds,
-      brandProductIds,
-      brandIds,
+      supermarketName,
       productName,
       brandName,
-      minPrice,
-      maxPrice,
+      unit,
       inStock,
-      sortBy = 'price',
-      sortOrder = 'asc',
       page = 1,
       limit = 10,
     } = query;
 
-    // Validate pagination parameters
-    if (page < 1 || limit < 1) {
-      throw new BadRequestException('Page and limit must be greater than 0.');
-    }
-
-    // Build the Prisma query
-    const where: Prisma.SupermarketProductWhereInput = {
-      ...(city && {
-        supermarket: {
-          city,
-        },
-      }),
-      ...(supermarketIds && {
-        supermarketId: {
-          in: supermarketIds,
-        },
-      }),
-      ...(brandProductIds && {
-        brandProductId: {
-          in: brandProductIds,
-        },
-      }),
-      ...(brandIds && {
-        brandProduct: {
-          brandId: {
-            in: brandIds,
-          },
-        },
-      }),
-      ...(productName && {
-        brandProduct: {
-          product: {
-            name: {
-              contains: productName,
-              mode: 'insensitive', // Case-insensitive search
-            },
-          },
-        },
-      }),
-      ...(brandName && {
-        brandProduct: {
-          brand: {
-            name: {
-              contains: brandName,
-              mode: 'insensitive', // Case-insensitive search
-            },
-          },
-        },
-      }),
-      ...(minPrice !== undefined && {
-        price: {
-          gte: minPrice,
-        },
-      }),
-      ...(maxPrice !== undefined && {
-        price: {
-          lte: maxPrice,
-        },
-      }),
-      ...(inStock !== undefined && {
-        inStock,
-      }),
-    };
-
-    const orderBy: Prisma.SupermarketProductOrderByWithRelationInput = {
-      [sortBy]: sortOrder,
-    };
+    // Ensure valid pagination values
+    const skip = Math.max(0, (page - 1) * limit);
+    const take = Math.max(1, limit);
 
     try {
-      // Fetch paginated results
+      // Fetch the results using Prisma
       const results = await this.prisma.supermarketProduct.findMany({
-        where,
-        orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
-        include: {
+        where: {
+          // Mandatory filter: city
           supermarket: {
-            select: {
-              id: true,
-              name: true,
-              city: true,
-              address: true,
-              latitude: true,
-              longitude: true,
-            },
+            city,
+            ...(supermarketName && {
+              name: {
+                contains: supermarketName,
+                mode: 'insensitive',
+              },
+            }),
           },
+          // Optional filter: productName (partial match)
+          ...(productName && {
+            brandProduct: {
+              product: {
+                name: {
+                  contains: productName,
+                  mode: 'insensitive',
+                },
+              },
+            },
+          }),
+          // Optional filter: brandName (partial match)
+          ...(brandName && {
+            brandProduct: {
+              brand: {
+                name: {
+                  contains: brandName,
+                  mode: 'insensitive',
+                },
+              },
+            },
+          }),
+          // Optional filter: unit
+          ...(unit && {
+            unit,
+          }),
+          // Optional filter: inStock
+          ...(typeof inStock === 'boolean' && {
+            inStock,
+          }),
+        },
+        orderBy: {
+          price: 'asc', // Always sort by price in ascending order
+        },
+        skip, // Pagination: offset
+        take, // Pagination: limit
+        include: {
+          supermarket: true, // Include related supermarket data
           brandProduct: {
             include: {
-              brand: {
-                select: {
-                  id: true,
-                  name: true,
-                  logo: true,
-                },
-              },
-              product: {
-                select: {
-                  id: true,
-                  name: true,
-                  description: true,
-                  category: true,
-                  units: true,
-                  isTypicallyBranded: true,
-                },
-              },
+              brand: true, // Include related brand data
+              product: true, // Include related product data
             },
           },
         },
       });
 
-      // Simplify the response
-      const simplifiedResults = results.map((result) => ({
-        id: result.id,
-        supermarketId: result.supermarketId,
-        brandProductId: result.brandProductId,
-        price: result.price,
-        unit: result.unit,
-        inStock: result.inStock,
-        createdAt: result.createdAt,
-        updatedAt: result.updatedAt,
-        supermarket: result.supermarket,
-        brandProduct: result.brandProduct,
+      // Transform the results into the desired response format
+      const formattedResults = results.map((item) => ({
+        product: `${item.brandProduct.brand.name} ${item.brandProduct.product.name} ${item.unit}`,
+        location: `${item.supermarket.name}, ${item.supermarket.city}`,
+        price: `$${item.price.toFixed(2)}`,
       }));
 
-      // Fetch total count for pagination metadata
-      const total = await this.prisma.supermarketProduct.count({ where });
-
+      // Return the transformed results along with pagination metadata
       return {
-        data: simplifiedResults,
+        data: formattedResults,
         meta: {
-          total,
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit),
+          totalItems: results.length, // Replace this with actual count query if needed
+          totalPages: Math.ceil(results.length / limit),
+          currentPage: page,
+          itemsPerPage: limit,
         },
       };
     } catch (error) {
-      throw new BadRequestException('An unexpected error occurred.');
+      console.error('Error in getSupermarketProducts:', error);
+      throw new HttpException(
+        'An error occurred while retrieving supermarket products.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

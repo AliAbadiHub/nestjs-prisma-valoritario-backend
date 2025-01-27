@@ -1,281 +1,319 @@
 import {
-  Controller,
-  Post,
   Body,
-  UsePipes,
-  ValidationPipe,
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-  UseGuards,
-  Req,
+  Controller,
   Get,
+  HttpException,
+  HttpStatus,
+  Post,
   Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
-import { Prisma, Role } from '@prisma/client';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiBody,
-  ApiResponse,
-  ApiSecurity,
   ApiBearerAuth,
-  ApiBadRequestResponse,
-  ApiOkResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiBody,
+  ApiSecurity,
   ApiQuery,
 } from '@nestjs/swagger';
-import { Roles } from '../auth/roles.decorators';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/role.guard';
-import { CreateSupermarketProductDto } from './dto/create-supermarketproduct.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { GetSupermarketProductDto } from './dto/get-supermarketproduct.dto';
+import { Roles } from '../auth/roles.decorators';
+import { Role } from '@prisma/client';
+import { Request as ExpressRequest } from 'express';
 import { SupermarketProductService } from './supermarketproduct.service';
+import { CreateSupermarketProductDto } from './dto/create-supermarketproduct.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { GetSupermarketProductDto } from './dto/get-supermarketproduct.dto';
 
-@Controller('supermarketproduct')
-@ApiTags('supermarketproducts')
+// Define an interface for req.user to avoid TypeScript errors
+interface AuthenticatedRequest extends ExpressRequest {
+  user: {
+    id: string; // User ID from the JWT token
+    email: string; // Optional, in case email is needed
+    role: Role; // User role
+  };
+}
+
+@ApiTags('Supermarket Products')
 @ApiBearerAuth()
+@Controller('supermarket-products')
 export class SupermarketProductController {
   constructor(
     private readonly supermarketProductService: SupermarketProductService,
-    private readonly prisma: PrismaService,
   ) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MERCHANT, Role.VERIFIED)
+  @Roles(Role.ADMIN, Role.MERCHANT)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiOperation({ summary: 'Create a new SupermarketProduct' })
-  @ApiBody({ type: CreateSupermarketProductDto })
+  @ApiSecurity('admin')
+  @ApiSecurity('merchant')
+  @ApiOperation({ summary: 'Create a new Supermarket Product' })
+  @ApiBody({
+    type: CreateSupermarketProductDto,
+    description: 'Data to create a Supermarket Product entry.',
+    examples: {
+      validInput: {
+        summary: 'Valid Input Example',
+        value: {
+          supermarketId: 'f1940f34-ff22-4117-9e0d-8653ed2f0bcf',
+          brandProductId: '5f6bda38-88c1-42c2-9a17-4fd6d9c14dc9',
+          unit: '500ml',
+          price: 1.99,
+          inStock: true,
+        },
+      },
+      withoutInStock: {
+        summary: 'Default "inStock" Example',
+        value: {
+          supermarketId: 'f1940f34-ff22-4117-9e0d-8653ed2f0bcf',
+          brandProductId: '5f6bda38-88c1-42c2-9a17-4fd6d9c14dc9',
+          unit: '1L',
+          price: 2.49,
+        },
+      },
+    },
+  })
   @ApiResponse({
     status: 201,
-    description: 'SupermarketProduct created successfully.',
+    description: 'The Supermarket Product was successfully created.',
+    schema: {
+      example: {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        supermarketId: 'f1940f34-ff22-4117-9e0d-8653ed2f0bcf',
+        brandProductId: '5f6bda38-88c1-42c2-9a17-4fd6d9c14dc9',
+        unit: '500ml',
+        price: 1.99,
+        inStock: true,
+        createdBy: 'c8b171a3-4f33-43b5-a376-8c404f4a6654',
+        createdAt: '2025-01-26T14:30:00Z',
+        updatedAt: '2025-01-26T14:30:00Z',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request - Invalid input data.',
+    schema: {
+      example: {
+        statusCode: 400,
+        message: [
+          'supermarketId must be a valid UUID',
+          'price must be a positive number',
+        ],
+        error: 'Bad Request',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Missing or invalid JWT.',
+    schema: {
+      example: {
+        statusCode: 401,
+        message: 'Unauthorized',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Insufficient permissions.',
+    schema: {
+      example: {
+        statusCode: 403,
+        message: 'Forbidden resource',
+        error: 'Forbidden',
+      },
+    },
   })
   @ApiResponse({
     status: 409,
-    description: 'A SupermarketProduct with this combination already exists.',
+    description:
+      'Conflict - A product with the same supermarket, brand product, and unit already exists.',
+    schema: {
+      example: {
+        statusCode: 409,
+        message:
+          'A product with the same supermarket, brand product, and unit already exists.',
+        error: 'Conflict',
+      },
+    },
   })
-  @UsePipes(ValidationPipe)
+  @ApiResponse({
+    status: 500,
+    description: 'Internal Server Error - Unexpected error.',
+    schema: {
+      example: {
+        statusCode: 500,
+        message: 'Internal Server Error. Unable to create Supermarket Product.',
+        error: 'Internal Server Error',
+      },
+    },
+  })
   async create(
     @Body() createSupermarketProductDto: CreateSupermarketProductDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest, // Use the extended type
   ) {
-    const userId = req.user.userId;
-
-    const { supermarketId, brandProductId, price, unit } =
-      createSupermarketProductDto;
-
-    // Fetch the brandProduct to ensure it exists
-    const brandProduct = await this.prisma.brandProduct.findUnique({
-      where: { id: brandProductId },
-    });
-
-    if (!brandProduct) {
-      throw new NotFoundException(
-        `BrandProduct with ID ${brandProductId} not found.`,
-      );
-    }
-
-    // Create the SupermarketProduct
-    const data: Prisma.SupermarketProductCreateInput = {
-      supermarket: { connect: { id: supermarketId } },
-      brandProduct: { connect: { id: brandProductId } },
-      price,
-      unit,
-      inStock: true, // Default to true
-    };
-
     try {
+      const userId = req.user.id; // Extract the userId from the validated JWT
+
+      // Create the Supermarket Product
       const supermarketProduct =
-        await this.supermarketProductService.createSupermarketProduct(data);
+        await this.supermarketProductService.createSupermarketProduct({
+          ...createSupermarketProductDto,
+          userId, // Pass the userId to the service
+        });
 
-      // Log the contribution if this is a new entry
-      await this.supermarketProductService.logContribution(
-        supermarketProduct.id,
-        price,
-        'PRICE_UPDATE',
-        userId,
-      );
-
-      return supermarketProduct;
+      return {
+        statusCode: HttpStatus.CREATED,
+        message: 'Supermarket Product created successfully.',
+        data: supermarketProduct,
+      };
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new ConflictException(
-            'A SupermarketProduct with this combination already exists.',
-          );
-        }
+      if (error.code === 'P2002') {
+        // Prisma unique constraint error
+        throw new HttpException(
+          'A product with the same supermarket, brand product, and unit already exists.',
+          HttpStatus.CONFLICT,
+        );
       }
-      throw new BadRequestException('An unexpected error occurred.');
+      throw new HttpException(
+        'Internal Server Error. Unable to create Supermarket Product.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.MERCHANT, Role.VERIFIED)
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiSecurity('admin')
   @ApiSecurity('merchant')
   @ApiSecurity('verified')
-  @UsePipes(new ValidationPipe({ transform: true })) // Enable validation and transformation
-  @ApiOperation({ summary: 'Search for supermarket products' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiOperation({ summary: 'Get Supermarket Products with filtering options' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Filtered list of supermarket products sorted by price in ascending order.',
+    schema: {
+      example: {
+        data: [
+          {
+            id: '123e4567-e89b-12d3-a456-426614174000',
+            supermarket: {
+              id: 'f1940f34-ff22-4117-9e0d-8653ed2f0bcf',
+              name: 'Mas por Menos',
+              city: 'Caracas',
+            },
+            brandProduct: {
+              id: '5f6bda38-88c1-42c2-9a17-4fd6d9c14dc9',
+              brand: {
+                id: 'abc12345-6789-12d3-a456-426614174000',
+                name: 'Mavesa',
+              },
+              product: {
+                id: 'cba98765-4321-12d3-a456-426614174000',
+                name: 'Corn Oil',
+              },
+            },
+            unit: '500ml',
+            price: 1.99,
+            inStock: true,
+            createdAt: '2025-01-26T14:30:00Z',
+            updatedAt: '2025-01-26T14:30:00Z',
+          },
+        ],
+        meta: {
+          totalItems: 100,
+          totalPages: 10,
+          currentPage: 1,
+          itemsPerPage: 10,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request - Invalid or missing query parameters.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - User is not authenticated.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - User does not have the required role.',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal Server Error - Unexpected error.',
+  })
   @ApiQuery({
     name: 'city',
-    required: false,
+    required: true,
     type: String,
-    description: 'Filter by supermarkets in a specific city.',
+    description: 'Filter products by supermarkets in the specified city.',
     example: 'Caracas',
   })
   @ApiQuery({
-    name: 'supermarketIds',
+    name: 'supermarketName',
     required: false,
     type: String,
-    description: 'Filter by specific supermarket IDs (comma-separated).',
-    example:
-      '2e7cba03-786f-4c2a-884f-1aa3ca717b65,88888888-8888-8888-8888-888888888888',
+    description: 'Filter products by partial supermarket name.',
+    example: 'Mas por Menos',
   })
   @ApiQuery({
-    name: 'brandProductIds',
+    name: 'productName',
     required: false,
     type: String,
-    description: 'Filter by specific brand product IDs (comma-separated).',
-    example:
-      '8b2d3c4d-5678-90ef-ab12-34567890cdef,22222222-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+    description: 'Filter products by partial product name.',
+    example: 'Corn Oil',
   })
   @ApiQuery({
-    name: 'brandIds',
+    name: 'brandName',
     required: false,
     type: String,
-    description: 'Filter by specific brand IDs (comma-separated).',
-    example:
-      'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb,cccccccc-cccc-cccc-cccc-cccccccccccc',
+    description: 'Filter products by partial brand name.',
+    example: 'Mavesa',
   })
   @ApiQuery({
-    name: 'minPrice',
+    name: 'unit',
     required: false,
-    type: Number,
-    description:
-      'Filter by products with a price greater than or equal to this value.',
-    example: 1.0,
-  })
-  @ApiQuery({
-    name: 'maxPrice',
-    required: false,
-    type: Number,
-    description:
-      'Filter by products with a price less than or equal to this value.',
-    example: 10.0,
+    type: String,
+    description: 'Filter products by exact container size (e.g., "500ml").',
+    example: '500ml',
   })
   @ApiQuery({
     name: 'inStock',
     required: false,
     type: Boolean,
-    description:
-      'Filter by products that are in stock (`true`) or out of stock (`false`).',
+    description: 'Filter products by availability (true or false).',
     example: true,
-  })
-  @ApiQuery({
-    name: 'sortBy',
-    required: false,
-    type: String,
-    description: 'Field to sort by (e.g., `price`).',
-    example: 'price',
-  })
-  @ApiQuery({
-    name: 'sortOrder',
-    required: false,
-    type: String,
-    description: 'Sort order (`asc` or `desc`).',
-    example: 'asc',
   })
   @ApiQuery({
     name: 'page',
     required: false,
     type: Number,
-    description: 'Page number for pagination (default: `1`).',
+    description: 'Page number for pagination (default: 1).',
     example: 1,
   })
   @ApiQuery({
     name: 'limit',
     required: false,
     type: Number,
-    description: 'Number of items per page for pagination (default: `10`).',
+    description: 'Number of items per page (default: 10).',
     example: 10,
   })
-  @ApiOkResponse({
-    description: 'Successfully retrieved supermarket products.',
-    schema: {
-      example: {
-        data: [
-          {
-            id: '7b2d3c4d-5678-90ef-ab12-34567890aaaa',
-            supermarketId: '2e7cba03-786f-4c2a-884f-1aa3ca717b65',
-            brandProductId: '8b2d3c4d-5678-90ef-ab12-34567890cdef',
-            price: 5.99,
-            unit: 'kg',
-            inStock: true,
-            createdAt: '2025-01-20T12:00:00.000Z',
-            updatedAt: '2025-01-20T12:00:00.000Z',
-            supermarket: {
-              id: '2e7cba03-786f-4c2a-884f-1aa3ca717b65',
-              name: 'Mas por Menos - Main Branch',
-              city: 'Caracas',
-              address: '123 Main Street, Caracas',
-              latitude: 10.5,
-              longitude: -66.9167,
-            },
-            brandProduct: {
-              id: '8b2d3c4d-5678-90ef-ab12-34567890cdef',
-              brand: {
-                id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-                name: 'Nestle',
-                logo: null,
-              },
-              product: {
-                id: '55555555-5555-5555-5555-555555555555',
-                name: 'Tomatoes',
-                description: 'Fresh tomatoes',
-                category: 'PRODUCE',
-                units: ['kg'],
-                isTypicallyBranded: false,
-              },
-            },
-          },
-        ],
-        meta: {
-          total: 100,
-          page: 1,
-          limit: 10,
-          totalPages: 10,
-        },
-      },
-    },
-  })
-  @ApiBadRequestResponse({
-    description: 'Bad Request - Invalid query parameters.',
-    schema: {
-      example: {
-        statusCode: 400,
-        message: 'Page and limit must be greater than 0.',
-        error: 'Bad Request',
-      },
-    },
-  })
   async getSupermarketProducts(@Query() query: GetSupermarketProductDto) {
-    try {
-      const { page = 1, limit = 10, ...filters } = query;
-
-      // Validate pagination parameters
-      if (page < 1 || limit < 1) {
-        throw new BadRequestException('Page and limit must be greater than 0.');
-      }
-
-      // Call the service to fetch filtered and paginated results
-      return this.supermarketProductService.getSupermarketProducts({
-        ...filters,
-        page,
-        limit,
-      });
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+    return {
+      data: await this.supermarketProductService.getSupermarketProducts(query),
+      meta: {
+        totalItems: 100, // Replace with actual count
+        totalPages: 10, // Replace with actual calculation
+        currentPage: query.page ?? 1,
+        itemsPerPage: query.limit ?? 10,
+      },
+    };
   }
 }

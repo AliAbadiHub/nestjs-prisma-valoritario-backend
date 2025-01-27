@@ -254,7 +254,7 @@ async function main() {
       id: uuidv4(),
       supermarketId: supermarkets[0].id, // Mas por Menos
       brandProductId: brandProducts[1].id, // Mavesa Corn Oil
-      unit: '500ml',
+      unit: '500 ml',
       price: 2.99,
       inStock: true,
     },
