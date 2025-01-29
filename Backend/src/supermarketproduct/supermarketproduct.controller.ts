@@ -4,6 +4,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Param,
   Post,
   Query,
   Req,
@@ -313,5 +314,90 @@ export class SupermarketProductController {
       data, // Array of results
       meta, // Pagination metadata
     };
+  }
+
+  @Get(':id')
+  @Roles(Role.ADMIN, Role.MERCHANT)
+  @ApiSecurity('admin')
+  @ApiSecurity('merchant')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiOperation({ summary: 'Get a Supermarket Product by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns the Supermarket Product with the specified ID.',
+    schema: {
+      example: {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        supermarket: {
+          id: 'f1940f34-ff22-4117-9e0d-8653ed2f0bcf',
+          name: 'Mas por Menos',
+          city: 'Caracas',
+        },
+        brandProduct: {
+          id: '5f6bda38-88c1-42c2-9a17-4fd6d9c14dc9',
+          brand: {
+            id: 'abc12345-6789-12d3-a456-426614174000',
+            name: 'Mavesa',
+          },
+          product: {
+            id: 'cba98765-4321-12d3-a456-426614174000',
+            name: 'Corn Oil',
+          },
+        },
+        unit: '500ml',
+        price: 1.99,
+        inStock: true,
+        createdAt: '2025-01-26T14:30:00Z',
+        updatedAt: '2025-01-26T14:30:00Z',
+        contributions: [
+          {
+            id: '6789abcd-ef01-2345-6789-0123456789ab',
+            userId: 'user12345-6789-12d3-a456-426614174000',
+            type: 'PRICE_UPDATE',
+            oldValue: { price: 1.89 },
+            newValue: { price: 1.99 },
+            createdAt: '2025-01-27T10:15:00Z',
+          },
+        ],
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request - Invalid or missing ID.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - User is not authenticated.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - User does not have the required role.',
+  })
+  @ApiResponse({
+    status: 404,
+    description:
+      'Not Found - Supermarket Product with the specified ID was not found.',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal Server Error - Unexpected error.',
+  })
+  async getSupermarketProductById(@Param('id') id: string) {
+    if (!id) {
+      throw new HttpException('ID is required.', HttpStatus.BAD_REQUEST);
+    }
+
+    const supermarketProduct =
+      await this.supermarketProductService.getSupermarketProductById(id);
+
+    if (!supermarketProduct) {
+      throw new HttpException(
+        'Supermarket Product not found.',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return supermarketProduct;
   }
 }

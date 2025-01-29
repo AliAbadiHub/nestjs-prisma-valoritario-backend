@@ -134,6 +134,33 @@ export class SupermarketProductService {
       return updatedProduct;
     });
   }
+
+  async getSupermarketProductById(id: string) {
+    try {
+      const supermarketProduct =
+        await this.prisma.supermarketProduct.findUnique({
+          where: { id },
+          include: {
+            supermarket: true,
+            brandProduct: {
+              include: {
+                brand: true,
+                product: true,
+              },
+            },
+            contributions: true,
+          },
+        });
+
+      return supermarketProduct;
+    } catch (error) {
+      console.error('Error in getSupermarketProductById:', error);
+      throw new HttpException(
+        'Failed to retrieve supermarket product.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
   async getSupermarketProducts(query: GetSupermarketProductDto) {
     const {
       city,
